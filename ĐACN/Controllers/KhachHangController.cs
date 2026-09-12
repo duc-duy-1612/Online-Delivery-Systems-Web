@@ -109,7 +109,7 @@ namespace ĐACN.Controllers
             {
                 using (var client = new HttpClient())
                 {
-                    client.DefaultRequestHeaders.Add("User-Agent", "ZFoodDeliveryApp/1.0");
+                    client.DefaultRequestHeaders.Add("User-Agent", "TapFoodDeliveryApp/1.0");
                     string coordinates = $"{startLng.ToString(CultureInfo.InvariantCulture)},{startLat.ToString(CultureInfo.InvariantCulture)};{endLng.ToString(CultureInfo.InvariantCulture)},{endLat.ToString(CultureInfo.InvariantCulture)}";
                     string url = $"http://router.project-osrm.org/route/v1/driving/{coordinates}?overview=full&geometries=geojson";
                     client.Timeout = TimeSpan.FromSeconds(5);
@@ -578,7 +578,7 @@ namespace ĐACN.Controllers
             if (!KiemTraDangNhap()) return RedirectToAction("TrangChu", "Home");
             ViewBag.MaDon = maDon;
             ViewBag.TongTien = tongTien;
-            ViewBag.QRCode = $"https://img.vietqr.io/image/970422-000012345678-compact2.png?amount={(int)tongTien}&addInfo={maDon}&accountName=ZFOOD%20COMPANY";
+            ViewBag.QRCode = $"https://img.vietqr.io/image/970422-000012345678-compact2.png?amount={(int)tongTien}&addInfo={maDon}&accountName=TAPFOOD%20COMPANY";
             return View();
         }
 
@@ -1355,14 +1355,14 @@ namespace ĐACN.Controllers
         public ActionResult Logout()
         {
             Session.Clear();
-            if (Request.Cookies["ZFoodLoginIP"] != null)
+            if (Request.Cookies["TapFoodLoginIP"] != null)
             {
-                var c = new HttpCookie("ZFoodLoginIP") { Expires = DateTime.Now.AddDays(-1) };
+                var c = new HttpCookie("TapFoodLoginIP") { Expires = DateTime.Now.AddDays(-1) };
                 Response.Cookies.Add(c);
             }
-            if (Request.Cookies["ZFoodUser"] != null)
+            if (Request.Cookies["TapFoodUser"] != null)
             {
-                var c = new HttpCookie("ZFoodUser") { Expires = DateTime.Now.AddDays(-1) };
+                var c = new HttpCookie("TapFoodUser") { Expires = DateTime.Now.AddDays(-1) };
                 Response.Cookies.Add(c);
             }
             return RedirectToAction("Login", "Account");

@@ -1,4 +1,4 @@
-const CACHE_NAME = "zfood-cache-v3";
+const CACHE_NAME = "tapfood-cache-v1";
 const urlsToCache = [
     '/',
     '/Content/bootstrap.min.css',

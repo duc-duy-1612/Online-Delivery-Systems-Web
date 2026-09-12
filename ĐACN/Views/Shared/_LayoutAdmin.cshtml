@@ -18,6 +18,10 @@
             --admin-card-bg: #ffffff;
         }
 
+        html {
+            font-size: 13px; /* Scales down all Bootstrap rem units to ~81% */
+        }
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--admin-bg);
@@ -28,7 +32,7 @@
 
         /* Sidebar Styling */
         .admin-sidebar {
-            width: 260px;
+            width: 210px;
             min-height: 100vh;
             background-color: var(--admin-sidebar-bg);
             color: var(--admin-sidebar-text);
@@ -38,6 +42,15 @@
             z-index: 1000;
             transition: all 0.3s ease;
             box-shadow: 4px 0 10px rgba(0,0,0,0.05);
+            overflow-y: auto;
+        }
+
+        .admin-sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .admin-sidebar::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
         }
 
         .admin-brand {
@@ -88,7 +101,7 @@
 
         /* Main Content */
         .admin-main {
-            margin-left: 260px;
+            margin-left: 210px;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -107,7 +120,7 @@
         }
 
         .admin-content {
-            padding: 32px;
+            padding: 24px;
             flex-grow: 1;
         }
 
@@ -141,7 +154,7 @@
 <body>
     <div class="admin-sidebar">
         <div class="admin-brand">
-            ZFood Admin
+            <img src="~/images/logo.jpg" alt="TapFood Logo" style="height: 30px; margin-right: 8px; border-radius: 4px;" />TapFood Admin
         </div>
         <ul class="admin-menu">
             <li class="admin-menu-item">
@@ -181,8 +194,13 @@
 
             <li class="admin-menu-title" style="margin-top: 40px;">Cá nhân</li>
             <li class="admin-menu-item">
+                <a href="@Url.Action("TrangChu", "Home")" class="admin-menu-link">
+                    <i class="bi bi-house" style="margin-right: 8px;"></i> Về trang chủ
+                </a>
+            </li>
+            <li class="admin-menu-item">
                 <a href="@Url.Action("DangXuat", "Account")" class="admin-menu-link logout-link">
-                    Đăng xuất
+                    <i class="bi bi-box-arrow-right" style="margin-right: 8px;"></i> Đăng xuất
                 </a>
             </li>
         </ul>

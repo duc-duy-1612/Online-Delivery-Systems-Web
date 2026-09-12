@@ -152,7 +152,7 @@ namespace ĐACN.Controllers
                 try
                 {
                     _sharedHttpClient.DefaultRequestHeaders.Remove("User-Agent");
-                    _sharedHttpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "ZFoodDelivery/1.0");
+                    _sharedHttpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "TapFoodDelivery/1.0");
                     string search = Uri.EscapeDataString(query);
                     string url = $"https://api.openrouteservice.org/geocode/search?api_key={ORS_API_KEY}&text={search}&size=1&boundary.country=VN";
                     var response = _sharedHttpClient.GetAsync(url).Result;

@@ -22,6 +22,12 @@ namespace ĐACN.Filters
             System.Diagnostics.Debug.WriteLine($"EXCEPTION in {controllerName}/{actionName}: {ex.Message}");
             System.Diagnostics.Debug.WriteLine($"Stack Trace: {ex.StackTrace}");
 
+            // Ngăn chặn vòng lặp vô hạn nếu lỗi xảy ra ngay trong ErrorController
+            if (string.Equals(controllerName, "Error", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
             // Xử lý các loại exception khác nhau
             if (ex is System.Data.Entity.Infrastructure.DbUpdateException dbEx)
             {

@@ -23,8 +23,8 @@ namespace ĐACN.Controllers
 
             if (tk == null)
             {
-                var cookieIP = Request.Cookies["ZFoodLoginIP"];
-                var cookieUser = Request.Cookies["ZFoodUser"];
+                var cookieIP = Request.Cookies["TapFoodLoginIP"];
+                var cookieUser = Request.Cookies["TapFoodUser"];
 
                 if (cookieIP != null && cookieUser != null)
                 {

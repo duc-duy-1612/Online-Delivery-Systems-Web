@@ -93,15 +93,27 @@
                                 {
                                     <tr>
                                         <td class="ps-4">
-
-                                            @if (!string.IsNullOrEmpty(item.HinhAnh))
-                                            {
-                                                <img src="@Url.Content("~/images/danhmuc/" + item.HinhAnh)" alt="@item.TenLoai" class="rounded-circle shadow-sm" style="width: 45px; height: 45px; object-fit: cover;" />
+                                            @{
+                                                var finalImg = item.HinhAnh;
+                                                if (string.IsNullOrEmpty(finalImg))
+                                                {
+                                                    string maLoaiLower = item.MaLoai?.ToLower().Trim() ?? "";
+                                                    var imageMap = new Dictionary<string, string> {
+                                                        { "anvat", "an_vat.png" }, { "an_vat", "an_vat.png" }, { "bun", "bun.png" },
+                                                        { "chay", "chay.png" }, { "com", "com.png" }, { "haisan", "haisan.png" },
+                                                        { "hai_san", "haisan.png" }, { "lau", "lau.png" }, { "mi", "mi.png" },
+                                                        { "pho", "pho.png" }, { "pizza", "pizza.png" }, { "steak", "steak.png" },
+                                                        { "sushi", "sushi.png" }, { "trasua", "trasua.png" }, { "tra_sua", "trasua.png" }
+                                                    };
+                                                    if (imageMap.ContainsKey(maLoaiLower)) { finalImg = imageMap[maLoaiLower]; }
+                                                    else { finalImg = "com.png"; }
+                                                }
+                                                else if (!finalImg.Contains("."))
+                                                {
+                                                    finalImg += ".png";
+                                                }
                                             }
-                                            else
-                                            {
-                                                <span class="badge bg-light text-secondary rounded-pill p-2"><i class="bi bi-image text-muted"></i></span>
-                                            }
+                                            <img src="@Url.Content("~/images/danhmuc/" + finalImg)" alt="@item.TenLoai" class="rounded-circle shadow-sm" style="width: 45px; height: 45px; object-fit: cover;" onerror="this.onerror=null; this.src='@Url.Content("~/images/danhmuc/com.png")';" />
                                         </td>
                                         <td class="text-muted fw-bold">@item.MaLoai</td>
                                         <td class="fw-bold text-dark">@item.TenLoai</td>

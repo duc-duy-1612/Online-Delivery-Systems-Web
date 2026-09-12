@@ -41,11 +41,11 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" id="btnBoQuaDanhGia">
-                    ✗ Bỏ qua
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnBoQuaDanhGia">
+                    Bỏ qua
                 </button>
                 <button type="button" class="btn btn-primary" id="btnLuuDanhGia" disabled>
-                    ✓ Gửi đánh giá
+                    Gửi đánh giá
                 </button>
             </div>
         </div>
@@ -203,19 +203,8 @@
                 });
             });
 
-            $(document).on('click', '#btnBoQuaDanhGia', function () {
-                var maDon = $('#ratingMaDon').val();
-                
-                // Just hide the modal, the hidden.bs.modal event will handle the rest
-                var modalElement = document.getElementById('danhGiaShipperModal');
-                var modalInstance = bootstrap.Modal.getInstance(modalElement);
-                if (modalInstance) {
-                    modalInstance.hide();
-                } else {
-                    var newModal = new bootstrap.Modal(modalElement);
-                    newModal.hide();
-                }
-            });
+            // The skip button now uses data-bs-dismiss="modal" directly, 
+            // so we don't need a custom click handler. The hidden.bs.modal event will handle everything.
 
             $('#danhGiaShipperModal').on('hidden.bs.modal', function () {
                 // Xóa backdrop và reset body styles

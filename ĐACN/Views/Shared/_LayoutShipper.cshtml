@@ -15,6 +15,9 @@
     @Scripts.Render("~/bundles/modernizr")
 
     <style>
+        html {
+            font-size: 13px; /* Scales down all Bootstrap rem units to ~81% */
+        }
         body {
             background-color: #f4f6f9;
             font-family: 'Outfit', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -22,7 +25,7 @@
 
         /* Sidebar */
         .sidebar {
-            width: 260px;
+            width: 210px;
             height: 100vh;
             background-color: #121418;
             position: fixed;
@@ -34,6 +37,16 @@
             justify-content: space-between;
             box-shadow: 4px 0 15px rgba(0,0,0,0.05);
             z-index: 1000;
+            overflow-y: auto;
+        }
+
+        /* Tùy chỉnh thanh cuộn cho sidebar */
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
         }
 
         .sidebar .brand {
@@ -116,8 +129,8 @@
 
         /* Main content */
         .main-content {
-            margin-left: 260px;
-            padding: 30px;
+            margin-left: 210px;
+            padding: 24px;
         }
 
         .navbar {
@@ -162,10 +175,13 @@
         </div>
 
         <div class="sidebar-footer">
-            <a href="@Url.Action("Logout", "Shipper")" class="text-danger text-decoration-none">
-                <i class="bi bi-box-arrow-right"></i> Đăng xuất
+            <a href="@Url.Action("TrangChu", "Home")" class="text-decoration-none mb-2" style="background: rgba(255, 255, 255, 0.1); color: #e5e7eb;">
+                <i class="bi bi-house" style="margin-right: 8px;"></i> Về trang chủ
             </a>
-            <div class="mt-2 text-muted">© 2025 ZFood Delivery</div>
+            <a href="@Url.Action("Logout", "Shipper")" class="text-danger text-decoration-none">
+                <i class="bi bi-box-arrow-right" style="margin-right: 8px;"></i> Đăng xuất
+            </a>
+            <div class="mt-3 text-muted">© 2025 TapFood Delivery</div>
         </div>
     </div>
 

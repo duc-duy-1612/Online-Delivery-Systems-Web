@@ -45,7 +45,7 @@
                         <tr>
                             <td class="ps-4 text-muted fw-bold">@(i++)</td>
                             <td>
-                                <img src="@(string.IsNullOrEmpty(item.HinhAnh) ? Url.Content("~/images/monan/no-image.png") : Url.Content("~/images/monan/" + item.HinhAnh))"
+                                <img src="@(string.IsNullOrEmpty(item.HinhAnh) ? Url.Content("~/images/monan/no-image.png") : (item.HinhAnh.StartsWith("http") ? item.HinhAnh : Url.Content("~/images/monan/" + item.HinhAnh)))"
                                      class="rounded-3 shadow-sm"
                                      style="width: 60px; height: 60px; object-fit: cover; transition: transform 0.3s;"
                                      onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" />

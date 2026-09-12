@@ -10,11 +10,11 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@ViewBag.Title - ZFood</title>
+    <title>@ViewBag.Title - TapFood</title>
     
     <!-- PWA Setup -->
     <link rel="manifest" href="~/manifest.json">
-    <meta name="theme-color" content="#ff4b2b">
+    <meta name="theme-color" content="#ff5a00">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1046/1046784.png">
 
     <!-- Bootstrap CSS -->
@@ -24,9 +24,10 @@
     @Styles.Render("~/Content/css")
     @Scripts.Render("~/bundles/modernizr")
     
-    <!-- FontAwesome & SweetAlert2 -->
+    <!-- FontAwesome & SweetAlert2 & AOS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     
     <style>
         .nav-item.dropdown > a::after {
@@ -60,10 +61,11 @@
 
         /* Modern UI Additions */
         .glass-nav {
-            background: rgba(255, 255, 255, 0.85) !important;
+            background: linear-gradient(135deg, #1e2024 0%, #2b2f33 100%) !important;
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
         }
         
         .text-gradient {
@@ -72,17 +74,18 @@
             -webkit-text-fill-color: transparent;
         }
 
-        .nav-link {
+        .navbar-dark .nav-link {
+            color: rgba(255, 255, 255, 0.85) !important;
             font-weight: 500;
             position: relative;
             transition: color 0.3s ease;
         }
 
-        .nav-link:hover {
+        .navbar-dark .nav-link:hover {
             color: #ff4b2b !important;
         }
 
-        .nav-link::after {
+        .navbar-dark .nav-link::after {
             content: '';
             position: absolute;
             width: 0;
@@ -94,7 +97,7 @@
             transform: translateX(-50%);
         }
 
-        .nav-link:hover::after {
+        .navbar-dark .nav-link:hover::after {
             width: 80%;
         }
 
@@ -117,18 +120,18 @@
             position: fixed;
             bottom: 0;
             width: 100%;
-            background: rgba(255, 255, 255, 0.95);
+            background: rgba(30, 32, 36, 0.98);
             backdrop-filter: blur(10px);
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 -2px 15px rgba(0,0,0,0.2);
             z-index: 1050;
             justify-content: space-around;
             padding: 8px 0;
-            border-top: 1px solid #eee;
+            border-top: 1px solid rgba(255,255,255,0.1);
         }
 
         .bottom-nav-item {
             text-align: center;
-            color: #6c757d;
+            color: rgba(255, 255, 255, 0.6);
             text-decoration: none;
             font-size: 0.75rem;
             flex: 1;
@@ -162,19 +165,18 @@
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light glass-nav sticky-top shadow-sm py-2">
+    <nav class="navbar navbar-expand-lg navbar-dark glass-nav sticky-top shadow-sm py-2">
         <div class="container">
             <a class="navbar-brand fw-bold fs-3 text-gradient" href="@Url.Action("TrangChu", "Home")">
-                <i class="fa-solid fa-burger me-2" style="color: #ff4b2b;"></i>ZFood
+                <img src="~/images/logo.jpg" alt="TapFood" style="height: 30px; margin-right: 8px; border-radius: 4px;" />TapFood
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item"><a class="nav-link" href="@Url.Action("TrangChu", "Home")">Trang chủ</a></li>
-                    <li class="nav-item d-none" id="installContainer"><button id="btnInstall" class="btn btn-sm btn-outline-danger ms-2 rounded-pill"><i class="fa-solid fa-download me-1"></i> Tải App ZFood</button></li>
                     <li class="nav-item"><a class="nav-link require-login" href="@Url.Action("DanhMuc", "Home")">Danh mục</a></li>
                     <li class="nav-item"><a class="nav-link require-login" href="@Url.Action("NhaHang", "Home")">Nhà hàng nổi bật</a></li>
 
@@ -245,6 +247,11 @@
                             <a class="btn btn-primary-custom ms-2" href="@Url.Action("Login", "Account")">Đăng nhập</a>
                         </li>
                     }
+                    <li class="nav-item d-none align-self-center ms-3" id="installContainer">
+                        <button id="btnInstall" class="btn btn-sm btn-danger rounded-pill shadow-sm px-3" style="background: linear-gradient(135deg, #ff416c, #ff4b2b); border: none;">
+                            <i class="fa-solid fa-download me-1"></i> Tải App
+                        </button>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -283,7 +290,7 @@
         <div class="container">
             <div class="row">
                 <div class="col-md-4 mb-4">
-                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-burger text-primary-custom me-2"></i>ZFood</h5>
+                    <h5 class="fw-bold mb-3"><img src="~/images/logo.jpg" alt="TapFood" style="height: 24px; margin-right: 8px; border-radius: 4px;" />TapFood</h5>
                     <p class="text-muted">Nền tảng đặt đồ ăn trực tuyến hàng đầu, mang đến bữa ăn ngon miệng và nhanh chóng cho bạn mỗi ngày.</p>
                 </div>
                 <div class="col-md-4 mb-4">
@@ -297,7 +304,7 @@
                 <div class="col-md-4 mb-4">
                     <h5 class="fw-bold mb-3">Liên hệ</h5>
                     <p class="text-muted mb-2"><i class="fa-solid fa-phone me-2"></i> 1900 9999</p>
-                    <p class="text-muted mb-2"><i class="fa-solid fa-envelope me-2"></i> support@zfood.vn</p>
+                    <p class="text-muted mb-2"><i class="fa-solid fa-envelope me-2"></i> support@tapfood.vn</p>
                     <div class="mt-3">
                         <a href="#" class="text-light me-3 fs-5"><i class="fa-brands fa-facebook"></i></a>
                         <a href="#" class="text-light me-3 fs-5"><i class="fa-brands fa-instagram"></i></a>
@@ -306,7 +313,7 @@
             </div>
             <hr class="border-secondary mt-4 mb-4" />
             <div class="text-center text-muted small">
-                &copy; @DateTime.Now.Year - ZFood Delivery. All rights reserved.
+                &copy; @DateTime.Now.Year - TapFood Delivery. All rights reserved.
             </div>
         </div>
     </footer>
@@ -395,6 +402,7 @@
             
             @if (tk != null && tk.VaiTro == "KhachHang")
             {
+                <text>
                 window.kiemTraVaHienThiDonTiepTheo = function() {
                     if (typeof $ === 'undefined' || !$) {
                         setTimeout(window.kiemTraVaHienThiDonTiepTheo, 100);
@@ -579,6 +587,20 @@
     </script>
 
     @Html.Partial("~/Views/Shared/_ChatWidget.cshtml")
+    
+    <!-- AOS JS for Scroll Animations -->
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            AOS.init({
+                duration: 800,
+                easing: 'ease-in-out',
+                once: true,
+                offset: 50
+            });
+        });
+    </script>
+    
     @RenderSection("scripts", required: false)
 </body>
 </html>

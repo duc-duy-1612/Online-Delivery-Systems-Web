@@ -94,7 +94,7 @@
                                                     <div class="d-flex align-items-center">
                                                         @if (!string.IsNullOrEmpty(item.HinhAnh))
                                                         {
-                                                            string imagePath = item.HinhAnh.StartsWith("~") ? item.HinhAnh : "~/images/monan/" + item.HinhAnh;
+                                                            string imagePath = item.HinhAnh.StartsWith("http") ? item.HinhAnh : (item.HinhAnh.StartsWith("~") ? item.HinhAnh : "~/images/monan/" + item.HinhAnh);
                                                             <img src="@Url.Content(imagePath)" alt="@item.TenMon" class="rounded-3 me-3" style="width: 54px; height: 54px; object-fit: cover;" />
                                                         }
                                                         else

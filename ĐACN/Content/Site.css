@@ -1,23 +1,30 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-    --primary-color: #FF4B2B; /* Coral Red */
-    --primary-dark: #E03E22;
-    --primary-light: #FFEAE6;
-    --bg-color: #F8F9FA;
+    --primary-color: #ff5a00; /* Vibrant Orange */
+    --primary-dark: #e04e00;
+    --primary-light: #fff0e6;
+    --bg-color: #f9fafb;
     --card-bg: #FFFFFF;
-    --text-main: #2D3748;
-    --text-muted: #718096;
+    --text-main: #111827; /* Sleek Black */
+    --text-muted: #4b5563; /* Dark Gray */
     --border-radius: 12px;
-    --soft-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    --hover-shadow: 0 10px 25px rgba(255, 75, 43, 0.15);
+    --soft-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    --hover-shadow: 0 10px 25px rgba(255, 90, 0, 0.15);
     --glass-bg: rgba(255, 255, 255, 0.85);
 }
 
 body {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Inter', sans-serif;
     background-color: var(--bg-color);
     color: var(--text-main);
+    line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 800;
+    color: #030712;
+    letter-spacing: -0.02em;
 }
 
 /* Custom Scrollbar */
@@ -38,17 +45,18 @@ body {
 
 /* Utilities */
 .btn-primary-custom {
-    background: linear-gradient(135deg, #FF416C 0%, #FF4B2B 100%);
+    background: linear-gradient(135deg, #ff7e22 0%, #ff5a00 100%);
     color: white;
     border: none;
     border-radius: 8px;
     padding: 10px 20px;
-    font-weight: 500;
+    font-weight: 600;
+    letter-spacing: 0.5px;
     transition: all 0.3s ease;
 }
 .btn-primary-custom:hover {
     transform: translateY(-2px);
-    box-shadow: var(--hover-shadow);
+    box-shadow: 0 8px 20px rgba(255, 90, 0, 0.3);
     color: white;
 }
 .btn-outline-custom {
@@ -107,7 +115,7 @@ input.form-control, select.form-control, textarea.form-control {
 }
 input.form-control:focus {
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(255, 75, 43, 0.25);
+    box-shadow: 0 0 0 0.2rem rgba(255, 90, 0, 0.25);
 }
 
 /* Legacy support */

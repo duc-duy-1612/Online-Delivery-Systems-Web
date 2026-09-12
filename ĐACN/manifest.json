@@ -1,7 +1,7 @@
 {
-  "name": "ZFood Delivery",
-  "short_name": "ZFood",
-  "description": "Đặt món nhanh, giao tận nơi cùng ZFood Delivery",
+  "name": "TapFood Delivery",
+  "short_name": "TapFood",
+  "description": "Đặt món nhanh, giao tận nơi cùng TapFood Delivery",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

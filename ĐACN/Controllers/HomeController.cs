@@ -25,7 +25,7 @@ namespace ĐACN.Controllers
                     cleanedAddress += ", Vietnam";
 
                 _sharedHttpClient.DefaultRequestHeaders.Remove("User-Agent");
-                _sharedHttpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "ZFoodApp");
+                _sharedHttpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "TapFoodApp");
                 var url = $"https://api.openrouteservice.org/geocode/search?api_key={ORS_API_KEY}&text={Uri.EscapeDataString(cleanedAddress)}&size=1";
                 var response = _sharedHttpClient.GetAsync(url).Result;
 

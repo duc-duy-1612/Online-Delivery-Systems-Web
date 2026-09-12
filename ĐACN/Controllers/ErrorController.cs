@@ -3,7 +3,7 @@ using ĐACN.Models;
 
 namespace ĐACN.Controllers
 {
-    public class ErrorController : BaseController
+    public class ErrorController : Controller
     {
         public ActionResult Index()
         {

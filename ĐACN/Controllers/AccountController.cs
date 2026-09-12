@@ -386,7 +386,7 @@ namespace ĐACN.Controllers
         {
             string from = "your_email@gmail.com";
             string password = "your_app_password";
-            string subject = "Xác thực tài khoản ZFood Delivery";
+            string subject = "Xác thực tài khoản TapFood Delivery";
             string body = $"Xin chào {username},\n\nTài khoản của bạn đã được tạo thành công!";
 
             var smtp = new SmtpClient("smtp.gmail.com")

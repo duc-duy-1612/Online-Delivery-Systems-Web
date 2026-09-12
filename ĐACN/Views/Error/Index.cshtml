@@ -18,7 +18,7 @@
                         <strong>@(ViewBag.ErrorMessage ?? "Đã xảy ra lỗi. Vui lòng thử lại sau.")</strong>
                     </div>
 
-                    @if (!string.IsNullOrEmpty(ViewBag.ErrorType) || !string.IsNullOrEmpty(ViewBag.ErrorDetails))
+                    @if (!string.IsNullOrEmpty(ViewBag.ErrorType) || !string.IsNullOrEmpty(ViewBag.ErrorDetails) || true)
                     {
                         <div class="mt-4">
                             <button class="btn btn-outline-secondary btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#errorDetails" aria-expanded="false" aria-controls="errorDetails">

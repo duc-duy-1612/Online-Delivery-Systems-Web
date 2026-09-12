@@ -1,4 +1,4 @@
-﻿@model ĐACN.MonAn
+@model ĐACN.MonAn
 
 @{
     ViewBag.Title = "Chỉnh sửa sản phẩm";
@@ -61,7 +61,7 @@
             <label>Hình ảnh hiện tại</label><br />
             @if (!string.IsNullOrEmpty(Model.HinhAnh))
             {
-                <img src="@Url.Content("~/images/monan/" + Model.HinhAnh)" width="150" style="border:1px solid #ccc; padding:4px;" /><br /><br />
+                <img src="@(string.IsNullOrEmpty(Model.HinhAnh) ? "" : (Model.HinhAnh.StartsWith("http") ? Model.HinhAnh : Url.Content("~/images/monan/" + Model.HinhAnh)))" width="150" style="border:1px solid #ccc; padding:4px;" /><br /><br />
             }
             <label>Chọn ảnh mới</label>
             <input type="file" name="HinhAnhFile" class="form-control" accept="image/*" onchange="previewImage(event)" />

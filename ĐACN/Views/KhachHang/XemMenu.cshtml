@@ -238,7 +238,12 @@
                         <div class="col">
                             <div class="dish-card">
                                 <div class="dish-img-wrapper">
-                                    <img src="~/images/monan/@m.HinhAnh" alt="@m.TenMon" class="dish-img" onerror="this.onerror=null; this.src='/images/monan/com.png'" />
+                                    @{
+                                        string imgUrl = m.HinhAnh != null && m.HinhAnh.StartsWith("http") 
+                                            ? m.HinhAnh 
+                                            : Url.Content("~/images/monan/" + m.HinhAnh);
+                                    }
+                                    <img src="@imgUrl" alt="@m.TenMon" class="dish-img" onerror="this.onerror=null; this.src='/images/monan/com.png'" />
                                 </div>
                                 <div class="dish-body">
                                     <h5 class="dish-title">@m.TenMon</h5>
