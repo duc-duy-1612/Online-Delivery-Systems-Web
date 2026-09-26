@@ -1,9 +1,37 @@
-@model ĐACN.NhaHang
+﻿@model ĐACN.NhaHang
 
 @{
     ViewBag.Title = "Thêm cửa hàng mới";
     Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
 }
+
+<style>
+    .admin-card { border: 1px solid rgba(0,0,0,0.06); border-radius: 1rem; box-shadow: 0 4px 16px rgba(0,0,0,0.05); background: #fff; padding: 20px; margin-bottom: 20px; }
+    h2.fw-bold { color: #1a202c !important; }
+    .text-muted { color: #718096 !important; }
+    .btn-dark.btn-modern { background: linear-gradient(135deg, #ff5a2b, #ff9f1c) !important; border: none !important; border-radius: 0.75rem !important; font-weight: 700 !important; color: #fff !important; box-shadow: 0 4px 12px rgba(255,90,43,0.25); }
+    .btn-dark.btn-modern:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(255,90,43,0.35) !important; }
+    .btn-outline-dark { border-color: #e2e8f0 !important; color: #4a5568 !important; border-radius: 0.75rem !important; font-weight: 600; }
+    .btn-success { background: linear-gradient(135deg, #22c55e, #16a34a) !important; border: none !important; border-radius: 0.75rem !important; font-weight: 700 !important; }
+    .btn-danger  { background: linear-gradient(135deg, #ef4444, #dc2626) !important; border: none !important; border-radius: 0.75rem !important; font-weight: 700 !important; }
+    .btn-warning { border-radius: 0.75rem !important; font-weight: 700 !important; }
+    .form-control, .form-select { border-radius: 0.75rem !important; border: 1.5px solid #e2e8f0 !important; background: #f7fafc !important; color: #2d3748 !important; transition: all 0.2s; }
+    .form-control.bg-light { background: #f7fafc !important; border: 1.5px solid #e2e8f0 !important; }
+    .form-control:focus, .form-select:focus { background: #fff !important; border-color: #ff5a2b !important; box-shadow: 0 0 0 3px rgba(255,90,43,0.12) !important; }
+    .table thead th { background: #f8fafc !important; color: #64748b !important; font-weight: 700 !important; font-size: 0.75rem !important; text-transform: uppercase !important; letter-spacing: 0.06em !important; border-bottom: 2px solid #e2e8f0 !important; }
+    .table tbody tr:hover { background: #fffaf8 !important; }
+    .table td { border-color: #f0f2f5 !important; vertical-align: middle; }
+    .badge { border-radius: 8px !important; font-weight: 700; padding: 4px 10px; }
+    .badge.bg-success { background: linear-gradient(135deg, #22c55e, #16a34a) !important; color: #fff !important; }
+    .badge.bg-danger  { background: linear-gradient(135deg, #ef4444, #dc2626) !important; color: #fff !important; }
+    .badge.bg-warning { background: linear-gradient(135deg, #f59e0b, #d97706) !important; color: #fff !important; }
+    .badge.bg-info    { background: linear-gradient(135deg, #3b82f6, #2563eb) !important; color: #fff !important; }
+    .badge.bg-secondary { background: #94a3b8 !important; color: #fff !important; }
+    .alert { border-radius: 0.85rem !important; }
+    .alert-success { background: #d1fae5 !important; color: #065f46 !important; border: 1px solid #a7f3d0 !important; }
+    .alert-danger  { background: #fee2e2 !important; color: #991b1b !important; border: 1px solid #fecaca !important; }
+    .alert-info    { background: #dbeafe !important; color: #1e40af !important; border: 1px solid #93c5fd !important; }
+</style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>

@@ -1,64 +1,192 @@
 @model IEnumerable<ĐACN.Models.LoaiMonAnViewModel>
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
-    ViewBag.Title = "Danh Mục";
+    ViewBag.Title = "Danh Mục Món Ăn";
 }
 
 <style>
-    .category-card {
-        border-radius: 16px;
-        background: #fff;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        cursor: pointer;
+    /* Category Page Styles - Luxury Dark Theme matching Home */
+    .breadcrumb-custom {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 0.88rem;
+        color: #a0aec0;
+        margin-bottom: 15px;
+    }
+
+    .breadcrumb-custom a {
+        color: #cbd5e0;
         text-decoration: none;
+        transition: color 0.2s ease;
+    }
+
+    .breadcrumb-custom a:hover {
+        color: var(--primary-color, #d4af37);
+    }
+
+    .breadcrumb-custom .active {
+        color: var(--primary-color, #d4af37);
+        font-weight: 600;
+    }
+
+    .page-title {
+        font-family: 'Playfair Display', serif;
+        font-size: clamp(2rem, 4vw, 2.8rem);
+        font-weight: 700;
+        color: var(--primary-color, #d4af37);
+        margin-bottom: 10px;
+        letter-spacing: -0.5px;
+    }
+
+    .page-subtitle {
+        color: #a0aec0;
+        font-size: 0.98rem;
+        max-width: 620px;
+        margin: 0 auto;
+        line-height: 1.6;
+    }
+
+    .category-link {
+        text-decoration: none;
+        display: block;
+        height: 100%;
         color: inherit;
-        border: 1px solid rgba(0,0,0,0.03);
+    }
+
+    .category-card {
+        border-radius: 20px;
+        background: var(--bg-card, #1C1F1E);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        cursor: pointer;
+        color: var(--text-main, #f8f9fa);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 26px 12px 22px;
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+    }
+
+    .category-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 50%;
+        height: 100%;
+        background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
+        transform: skewX(-25deg);
+        transition: 0.5s;
+        pointer-events: none;
+    }
+
+    .category-card:hover::before {
+        left: 125%;
     }
 
     .category-card:hover {
         transform: translateY(-8px);
-        box-shadow: 0 10px 25px rgba(255,75,43,0.15);
-        border-color: rgba(255,75,43,0.2);
-        color: #ff4b2b;
+        background: rgba(255, 255, 255, 0.05);
+        box-shadow: 0 16px 36px rgba(212, 175, 55, 0.18);
+        border-color: rgba(212, 175, 55, 0.35);
     }
 
     .category-img {
-        width: 120px;
-        height: 120px;
+        width: 85px;
+        height: 85px;
         object-fit: cover;
-        border-radius: 12px;
+        border-radius: 50%;
         display: block;
         margin: 0 auto;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        border: 2px solid rgba(212, 175, 55, 0.25);
+        transition: transform 0.4s ease, border-color 0.4s ease;
+    }
+
+    .category-card:hover .category-img {
+        transform: scale(1.08) rotate(3deg);
+        border-color: var(--primary-color, #d4af37);
+    }
+
+    .category-name {
+        font-family: 'Playfair Display', serif;
+        font-weight: 600;
+        font-size: 1.15rem;
+        color: var(--primary-color, #d4af37);
+        margin-top: 14px;
+        margin-bottom: 0;
+        transition: color 0.3s ease;
+        letter-spacing: 0.3px;
     }
 
     @@media (max-width: 768px) {
         .category-img {
-            width: 90px;
-            height: 90px;
+            width: 75px;
+            height: 75px;
+        }
+        .category-name {
+            font-size: 1.02rem;
+        }
+        .category-card {
+            padding: 20px 8px 16px;
         }
     }
 </style>
 
-<div class="container mt-4">
-    <h2 class="text-center mb-4 fw-bold">🏙️ Danh Mục Món Ăn</h2>
-    <div class="row justify-content-center">
+<div class="container mt-4 pb-5">
+    <div class="text-center mb-5" data-aos="fade-down">
+        <div class="breadcrumb-custom">
+            <a href="@Url.Action("TrangChu", "Home")"><i class="fas fa-home me-1"></i> Trang chủ</a>
+            <span>/</span>
+            <span class="active">Danh mục món ăn</span>
+        </div>
+        <h1 class="page-title">Danh Mục Món Ăn</h1>
+        <p class="page-subtitle">
+            Khám phá thế giới ẩm thực phong phú với đa dạng món ngon hấp dẫn từ những nhà hàng chất lượng nhất
+        </p>
+    </div>
+
+    <div class="row justify-content-center g-4">
         @if (Model == null || !Model.Any())
         {
-            <p class="text-center text-muted mt-3">Chưa có danh mục nào để hiển thị.</p>
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-utensils fa-3x text-muted mb-3 opacity-50"></i>
+                <p class="text-muted fs-5">Chưa có danh mục nào để hiển thị.</p>
+                <a href="@Url.Action("TrangChu", "Home")" class="btn btn-outline-warning rounded-pill px-4 mt-2">Về trang chủ</a>
+            </div>
         }
         else
         {
+            int delay = 0;
             foreach (var dm in Model)
             {
-                <div class="col-6 col-sm-4 col-md-3 col-lg-2 mb-4">
-                    <a href="@Url.Action("MonAnTheoLoai", "KhachHang", new { maLoai = dm.MaLoai })" style="text-decoration:none;">
-                        <div class="category-card text-center p-3">
-                            <img src="~/images/danhmuc/@dm.HinhAnh" alt="@dm.TenLoai" class="category-img mb-2" onerror="this.onerror=null; this.src='/images/danhmuc/com.png'" />
-                            <h6 class="mt-3 fw-bold" style="font-size: 1.1rem; letter-spacing: 0.5px;">@dm.TenLoai</h6>
+                var imgPath = string.IsNullOrEmpty(dm.HinhAnh)
+                    ? Url.Content("~/images/danhmuc/com.png")
+                    : Url.Content("~/images/danhmuc/" + dm.HinhAnh);
+
+                <div class="col-6 col-sm-4 col-md-3 col-lg-2" data-aos="fade-up" data-aos-delay="@delay">
+                    <a href="@Url.Action("MonAnTheoLoai", "KhachHang", new { maLoai = dm.MaLoai })"
+                       class="category-link require-login"
+                       data-id="@dm.MaLoai"
+                       title="@dm.TenLoai">
+                        <div class="category-card text-center">
+                            <img src="@imgPath"
+                                 alt="@dm.TenLoai"
+                                 class="category-img mb-2"
+                                 onerror="this.onerror=null; this.src='@Url.Content("~/images/danhmuc/com.png")'" />
+                            <h6 class="category-name">@dm.TenLoai</h6>
                         </div>
                     </a>
                 </div>
+                delay += 50;
             }
         }
     </div>

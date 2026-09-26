@@ -1,4 +1,4 @@
-@model ĐACN.Models.TheoDoiDonHangFullViewModel
+﻿@model ĐACN.Models.TheoDoiDonHangFullViewModel
 @using System.Globalization
 
 @{
@@ -35,163 +35,170 @@
 }
 
 <style>
-    body {
-        background-color: #f5f7fa;
-    }
+    /* ===== THEO DOI DON HANG - PREMIUM TIMELINE ===== */
+    body { background: #f8f9fa; font-family: 'Inter', sans-serif; }
 
-    /* --- Giao diện chung --- */
-    .page-title {
-        font-weight: 800;
-        color: #2b2b2b;
-    }
-    .custom-badge {
-        padding: 8px 16px;
-        border-radius: 20px;
-        font-weight: 700;
-        font-size: 0.9rem;
-    }
-    .badge-warning { background: #fff3cd; color: #856404; }
-    .badge-info { background: #cff4fc; color: #055160; }
-    .badge-primary { background: #cfe2ff; color: #084298; }
-    .badge-success { background: #d1e7dd; color: #0f5132; }
-    .badge-danger { background: #f8d7da; color: #842029; }
+    .page-title { font-weight: 800; color: #1a202c; }
 
-    /* --- Floating Cards --- */
+    /* ===== STATUS BADGES ===== */
+    .custom-badge { padding: 8px 18px; border-radius: 20px; font-weight: 700; font-size: 0.9rem; }
+    .badge-warning { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; border: 1px solid #fcd34d; }
+    .badge-info    { background: linear-gradient(135deg, #dbeafe, #bfdbfe); color: #1e40af; border: 1px solid #93c5fd; }
+    .badge-primary { background: linear-gradient(135deg, #ede9fe, #ddd6fe); color: #6d28d9; border: 1px solid #c4b5fd; }
+    .badge-success { background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #065f46; border: 1px solid #6ee7b7; }
+    .badge-danger  { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #991b1b; border: 1px solid #fca5a5; }
+
+    /* ===== FLOATING CARD ===== */
     .floating-card {
         background: #fff;
         border-radius: 1.5rem;
-        border: none;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        border: 1px solid rgba(0,0,0,0.06);
+        box-shadow: 0 6px 24px rgba(0,0,0,0.06);
+        transition: all 0.3s ease;
         margin-bottom: 1.5rem;
         overflow: hidden;
     }
-    .floating-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 40px rgba(0,0,0,0.1);
-    }
+    .floating-card:hover { transform: translateY(-4px); box-shadow: 0 14px 40px rgba(0,0,0,0.09); }
     .card-header-custom {
         background: #fff;
         border-bottom: 1px dashed #e9ecef;
         padding: 1.25rem 1.5rem;
     }
-    .card-header-custom h5 {
-        font-weight: 700;
-        color: #2b2b2b;
-        margin: 0;
-    }
+    .card-header-custom h5 { font-weight: 700; color: #1a202c; margin: 0; }
 
-    /* --- Stepper mượt mà --- */
-    .stepper-container {
-        padding: 2rem 1rem;
-        position: relative;
-    }
+    /* ===== ANIMATED PROGRESS TIMELINE ===== */
+    .stepper-container { padding: 2rem 1rem 1.5rem; position: relative; }
+
     .step-wrapper {
         display: flex;
         justify-content: space-between;
         position: relative;
         z-index: 2;
     }
-    .step {
-        text-align: center;
-        flex: 1;
-        position: relative;
-    }
-    .step-circle {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        background: #fff;
-        border: 3px solid #e9ecef;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 10px;
-        font-weight: bold;
-        color: #adb5bd;
-        transition: all 0.5s ease;
-        position: relative;
-        z-index: 2;
-    }
-    .step-label {
-        font-weight: 600;
-        color: #adb5bd;
-        font-size: 0.9rem;
-        transition: all 0.5s ease;
-    }
-    .step-active .step-circle {
-        border-color: #0d6efd;
-        background: #0d6efd;
-        color: white;
-        box-shadow: 0 0 0 8px rgba(13, 110, 253, 0.15);
-        transform: scale(1.1);
-    }
-    .step-active .step-label {
-        color: #0d6efd;
-    }
-    .step-complete .step-circle {
-        border-color: #198754;
-        background: #198754;
-        color: white;
-    }
-    .step-complete .step-label {
-        color: #198754;
-    }
 
-    /* Connecting Lines */
+    .step { text-align: center; flex: 1; position: relative; }
+
+    /* Connector track */
     .stepper-progress {
         position: absolute;
         top: 2rem;
-        left: 10%;
-        width: 80%;
-        height: 4px;
-        background-color: #e9ecef;
+        left: 10%; width: 80%;
+        height: 6px;
+        background: #e9ecef;
         z-index: 1;
-        border-radius: 2px;
-        transform: translateY(22px); /* Canh giữa circle */
-    }
-    .stepper-progress-bar {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
-        background: linear-gradient(90deg, #198754, #0d6efd);
-        border-radius: 2px;
-        transition: width 1s ease-in-out;
+        border-radius: 3px;
+        transform: translateY(18px);
+        overflow: hidden;
     }
 
-    /* --- Map & Overlay --- */
-    #map {
-        height: 500px;
-        width: 100%;
-        border-radius: 0 0 1.5rem 1.5rem;
-        z-index: 1;
-    }
-    .map-info-overlay {
+    /* Animated beam bar */
+    .stepper-progress-bar {
         position: absolute;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 90%;
-        max-width: 400px;
-        background: rgba(255, 255, 255, 0.9);
-        padding: 1rem;
-        border-radius: 1rem;
+        top: 0; left: 0;
+        height: 100%;
+        background: linear-gradient(90deg, #ff5a2b, #ff9f1c, #38a169);
+        border-radius: 3px;
+        transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Shimmer beam effect on top */
+    .stepper-progress-bar::after {
+        content: '';
+        position: absolute;
+        top: 0; left: -60%;
+        width: 50%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+        animation: shimmerBeam 2s ease-in-out infinite;
+    }
+    @Html.Raw("@")keyframes shimmerBeam {
+        0% { left: -60%; }
+        100% { left: 120%; }
+    }
+
+    /* Step circles */
+    .step-circle {
+        width: 52px; height: 52px;
+        border-radius: 50%;
+        background: #fff;
+        border: 3px solid #e2e8f0;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 10px;
+        font-weight: 700;
+        color: #a0aec0;
+        transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        position: relative; z-index: 2;
+        font-size: 1.1rem;
+    }
+
+    .step-label {
+        font-weight: 600; color: #a0aec0; font-size: 0.82rem;
+        transition: all 0.4s ease;
+    }
+
+    /* Complete step */
+    .step-complete .step-circle {
+        border-color: #38a169;
+        background: linear-gradient(135deg, #38a169, #48bb78);
+        color: #fff;
+        box-shadow: 0 4px 15px rgba(56, 161, 105, 0.35);
+    }
+    .step-complete .step-label { color: #38a169; font-weight: 700; }
+
+    /* Active (current) step */
+    .step-active .step-circle {
+        border-color: #ff5a2b;
+        background: linear-gradient(135deg, #ff5a2b, #ff9f1c);
+        color: #fff;
+        box-shadow: 0 0 0 8px rgba(255, 90, 43, 0.15), 0 6px 18px rgba(255, 90, 43, 0.35);
+        animation: pulseActive 2s ease-in-out infinite;
+        transform: scale(1.18);
+    }
+    .step-active .step-label { color: #ff5a2b; font-weight: 800; }
+
+    @Html.Raw("@")keyframes pulseActive {
+        0%, 100% { box-shadow: 0 0 0 8px rgba(255, 90, 43, 0.15), 0 6px 18px rgba(255, 90, 43, 0.35); }
+        50%       { box-shadow: 0 0 0 14px rgba(255, 90, 43, 0.08), 0 6px 18px rgba(255, 90, 43, 0.4); }
+    }
+
+    /* ===== MAP & OVERLAY ===== */
+    #map { height: 500px; width: 100%; border-radius: 0 0 1.5rem 1.5rem; z-index: 1; }
+    .map-info-overlay {
+        position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+        width: 90%; max-width: 400px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 1rem; border-radius: 1rem;
         box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         z-index: 1000;
         backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.5);
+        border: 1px solid rgba(255,255,255,0.6);
     }
 
-    /* --- List Items --- */
+    /* ===== LIST ITEMS ===== */
     .order-item-list .list-group-item {
-        border: none;
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid rgba(0,0,0,0.03);
+        border: none; padding: 1rem 1.5rem;
+        border-bottom: 1px solid rgba(0,0,0,0.04);
+        transition: background 0.15s;
     }
-    .order-item-list .list-group-item:last-child {
-        border-bottom: none;
+    .order-item-list .list-group-item:hover { background: #fffaf8; }
+    .order-item-list .list-group-item:last-child { border-bottom: none; }
+
+    /* ===== SHIPPER INFO CARD ===== */
+    .shipper-card {
+        background: linear-gradient(135deg, #fff5f0, #fff);
+        border: 1px solid rgba(255, 90, 43, 0.15);
+        border-radius: 1.25rem;
+        padding: 1.25rem 1.5rem;
+        display: flex; align-items: center; gap: 1rem;
     }
+    .shipper-avatar {
+        width: 60px; height: 60px; border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #ff5a2b;
+        box-shadow: 0 4px 12px rgba(255,90,43,0.25);
+    }
+
+    /* ===== TOTAL PRICE ===== */
+    .price-highlight { color: #ff5a2b; font-size: 1.6rem; font-weight: 800; }
 </style>
 
 <div class="container mt-4 mb-5">

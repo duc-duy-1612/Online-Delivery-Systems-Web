@@ -1,0 +1,56 @@
+[
+  {
+    "MaVoucher": "TAPFOOD50",
+    "LoaiVoucher": "Mon",
+    "PhanTramGiam": 50,
+    "GiamToiDa": 50000.0,
+    "DieuKienToiThieu": 0.0,
+    "MoTa": "Giảm 50% món (tối đa 50K) cho mọi đơn",
+    "IsActive": true
+  },
+  {
+    "MaVoucher": "GIAM20K",
+    "LoaiVoucher": "Mon",
+    "PhanTramGiam": 100,
+    "GiamToiDa": 20000.0,
+    "DieuKienToiThieu": 100000.0,
+    "MoTa": "Giảm trực tiếp 20K cho đơn từ 100K",
+    "IsActive": true
+  },
+  {
+    "MaVoucher": "VIP200",
+    "LoaiVoucher": "Mon",
+    "PhanTramGiam": 20,
+    "GiamToiDa": 200000.0,
+    "DieuKienToiThieu": 500000.0,
+    "MoTa": "Giảm 20% (tối đa 200K) cho đơn từ 500K",
+    "IsActive": true
+  },
+  {
+    "MaVoucher": "FREESHIP",
+    "LoaiVoucher": "Ship",
+    "PhanTramGiam": 100,
+    "GiamToiDa": 15000.0,
+    "DieuKienToiThieu": 50000.0,
+    "MoTa": "Freeship (Tối đa 15K) cho đơn từ 50K",
+    "IsActive": true
+  },
+  {
+    "MaVoucher": "FREESHIPEXTRA",
+    "LoaiVoucher": "Ship",
+    "PhanTramGiam": 100,
+    "GiamToiDa": 50000.0,
+    "DieuKienToiThieu": 200000.0,
+    "MoTa": "Freeship Extra (Tối đa 50K) cho đơn từ 200K",
+    "IsActive": true
+  },
+  {
+    "MaVoucher": "TAPFOOD30%",
+    "LoaiVoucher": "Mon",
+    "PhanTramGiam": 30,
+    "GiamToiDa": 100000.0,
+    "DieuKienToiThieu": 50000.0,
+    "MoTa": "Giảm 30% cho đơn hàng trên 50K",
+    "IsActive": true
+  }
+]

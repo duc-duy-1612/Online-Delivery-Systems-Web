@@ -1,11 +1,11 @@
 <div class="modal fade" id="danhGiaNhaHangModal" tabindex="-1" aria-labelledby="danhGiaNhaHangModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title" id="danhGiaNhaHangModalLabel">
+        <div class="modal-content premium-card text-light" style="background: var(--bg-card);">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <h5 class="modal-title" id="danhGiaNhaHangModalLabel" style="color: var(--primary-color);">
                     ⭐ Đánh giá Nhà hàng
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="ratingNHMaDon" />
@@ -17,7 +17,7 @@
                     <p class="text-muted small">Thời gian đặt: <span id="ratingNHThoiGian"></span></p>
                 </div>
 
-                <hr />
+                <hr style="border-color: rgba(255,255,255,0.1);" />
 
                 <div class="mb-4">
                     <label class="form-label fw-bold">Đánh giá bằng sao: <span id="ratingNHSoSaoDisplay">0</span>/5</label>
@@ -33,7 +33,7 @@
 
                 <div class="mb-3">
                     <label for="ratingNHHinhAnh" class="form-label fw-bold">Tải ảnh (tùy chọn):</label>
-                    <input type="file" class="form-control" id="ratingNHHinhAnh" accept="image/*" />
+                    <input type="file" class="form-control" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1);" id="ratingNHHinhAnh" accept="image/*" />
                     <small class="text-muted">Chấp nhận mọi định dạng ảnh</small>
                     <div id="ratingNHPreviewContainer" class="mt-2" style="display: none;">
                         <img id="ratingNHPreview" src="" alt="Preview" class="img-thumbnail" style="max-width: 200px; max-height: 200px; object-fit: contain;" />
@@ -43,18 +43,18 @@
 
                 <div class="mb-3">
                     <label for="ratingNHBinhLuan" class="form-label fw-bold">Bình luận (tùy chọn):</label>
-                    <textarea class="form-control" id="ratingNHBinhLuan" rows="3" placeholder="Chia sẻ trải nghiệm của bạn về nhà hàng..."></textarea>
+                    <textarea class="form-control" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1);" id="ratingNHBinhLuan" rows="3" placeholder="Chia sẻ trải nghiệm của bạn về nhà hàng..."></textarea>
                 </div>
 
-                <div class="alert alert-info small">
+                <div class="alert small" style="background: rgba(13, 110, 253, 0.1); color: #8bb9fe; border: 1px solid rgba(13, 110, 253, 0.2);">
                     ℹ️ Đánh giá của bạn giúp nhà hàng cải thiện dịch vụ và giúp khách hàng khác lựa chọn tốt hơn.
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" style="border-top: 1px solid rgba(255,255,255,0.05);">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnBoQuaDanhGiaNH">
                     Bỏ qua
                 </button>
-                <button type="button" class="btn btn-warning" id="btnLuuDanhGiaNH" disabled>
+                <button type="button" class="btn btn-primary-custom" id="btnLuuDanhGiaNH" disabled>
                     Gửi đánh giá
                 </button>
             </div>
@@ -102,7 +102,7 @@
                     } else {
                         $(this).removeClass('active');
                         $(this).css('filter', 'grayscale(100%)');
-                        $(this).css('opacity', '0.3');
+                        $(this).css('opacity', '0.5');
                     }
                 });
 
@@ -131,7 +131,7 @@
                         $(this).css('opacity', '1');
                     } else {
                         $(this).css('filter', 'grayscale(100%)');
-                        $(this).css('opacity', '0.3');
+                        $(this).css('opacity', '0.5');
                     }
                 });
             });
@@ -169,7 +169,7 @@
                         } else {
                             $(this).removeClass('active');
                             $(this).css('filter', 'grayscale(100%)');
-                            $(this).css('opacity', '0.3');
+                            $(this).css('opacity', '0.5');
                         }
                     });
                     $('#btnLuuDanhGiaNH').prop('disabled', false);

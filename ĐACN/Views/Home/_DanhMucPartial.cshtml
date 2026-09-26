@@ -29,15 +29,15 @@ else
 
         .category-card {
             border-radius: 20px;
-            background: rgba(255, 255, 255, 0.8);
+            background: var(--bg-card);
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.05);
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             cursor: pointer;
             text-decoration: none;
-            color: inherit;
+            color: var(--text-main);
             min-width: 140px;
             display: flex;
             flex-direction: column;
@@ -66,10 +66,10 @@ else
 
         .category-card:hover {
             transform: translateY(-8px);
-            background: #fff;
-            box-shadow: 0 15px 35px rgba(255,75,43,0.15);
-            border-color: rgba(255,75,43,0.3);
-            color: #ff4b2b;
+            background: rgba(255,255,255,0.05);
+            box-shadow: 0 15px 35px rgba(212, 175, 55, 0.15);
+            border-color: rgba(212, 175, 55, 0.3);
+            color: var(--primary-color);
         }
 
         .category-img {

@@ -82,47 +82,67 @@
     }
 
     .calendar-day {
-        background: #f8f9fa;
-        border: 2px solid #e9ecef;
-        border-radius: 12px;
-        padding: 15px 10px;
+        background: #ffffff;
+        border: 2px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 16px 10px;
         text-align: center;
         cursor: pointer;
-        transition: all 0.3s;
-        min-height: 120px;
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        min-height: 125px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        color: #2d3748;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
     }
 
         .calendar-day:hover {
             transform: translateY(-3px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
+            border-color: #cbd5e1;
+            background: #ffffff;
         }
 
         .calendar-day.active {
-            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
-            color: white;
-            border-color: #ff416c;
-            box-shadow: 0 4px 15px rgba(255, 65, 108, 0.4);
+            background: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%) !important;
+            color: #ffffff !important;
+            border-color: #ff416c !important;
+            box-shadow: 0 6px 20px rgba(255, 65, 108, 0.4) !important;
         }
 
         .calendar-day.today {
-            border-color: #28a745;
-            border-width: 3px;
+            border-color: #10b981;
+            border-width: 2.5px;
+        }
+
+        .calendar-day.today:not(.active) {
+            border-color: #10b981;
+            background: #f0fdf4;
         }
 
     .day-name {
         font-size: 0.85rem;
         font-weight: 600;
-        margin-bottom: 8px;
-        opacity: 0.8;
+        margin-bottom: 6px;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .calendar-day.active .day-name {
+        color: rgba(255, 255, 255, 0.9) !important;
     }
 
     .day-number {
-        font-size: 1.3rem;
+        font-size: 1.35rem;
         font-weight: 700;
         margin-bottom: 8px;
+        color: #1e293b;
+    }
+
+    .calendar-day.active .day-number {
+        color: #ffffff !important;
     }
 
     .day-stats {
@@ -131,19 +151,39 @@
     }
 
     .day-orders-count {
-        background: rgba(255, 255, 255, 0.3);
+        background: #e0f2fe;
+        color: #0284c7;
         padding: 3px 8px;
-        border-radius: 10px;
+        border-radius: 12px;
         display: inline-block;
         margin-bottom: 4px;
-    }
-
-    .day-total {
         font-weight: 600;
+        font-size: 0.75rem;
     }
 
     .calendar-day.active .day-orders-count {
-        background: rgba(255, 255, 255, 0.4);
+        background: rgba(255, 255, 255, 0.25) !important;
+        color: #ffffff !important;
+    }
+
+    .day-total {
+        font-weight: 700;
+        color: #059669;
+        font-size: 0.8rem;
+    }
+
+    .calendar-day.active .day-total {
+        color: #ffffff !important;
+    }
+
+    .day-no-orders {
+        color: #94a3b8;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .calendar-day.active .day-no-orders {
+        color: rgba(255, 255, 255, 0.8) !important;
     }
 
     .orders-container {
@@ -305,7 +345,7 @@
                         }
                         else
                         {
-                            <div style="opacity: 0.5; font-size: 0.7rem;">Không có đơn</div>
+                            <div class="day-no-orders">Không có đơn</div>
                         }
                     </div>
                 </div>
@@ -355,7 +395,7 @@
 
     function loadOrders(date) {
         const ordersList = document.getElementById('ordersList');
-        ordersList.innerHTML = '<div class="loading"><div class="spinner"></div>Đang tải...</div>';
+        ordersList.innerHTML = window.SkeletonLoader ? window.SkeletonLoader.getCardsHtml(3) : '<div class="loading"><div class="spinner"></div>Đang tải...</div>';
 
         $.ajax({
             url: '@Url.Action("GetOrdersByDate", "Shipper")',
@@ -364,9 +404,9 @@
             success: function(res) {
                 if (res.success && res.orders && res.orders.length > 0) {
                     let html = '';
-                    res.orders.forEach(function(order) {
+                    res.orders.forEach(function(order, index) {
                         html += `
-                            <div class="order-item">
+                            <div class="order-item tilt-3d animate-entrance stagger-${(index % 5) + 1}">
                                 <div class="order-header">
                                     <div class="order-code">#${order.MaDon}</div>
                                     <div>
@@ -386,6 +426,9 @@
                         `;
                     });
                     ordersList.innerHTML = html;
+                    if (window.TapFoodAnimation) {
+                        window.TapFoodAnimation.initTilt3D();
+                    }
                 } else {
                     ordersList.innerHTML = `
                         <div class="no-orders">

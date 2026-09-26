@@ -12,6 +12,16 @@ namespace ĐACN.Controllers
         // In-memory thread-safe queue to store chat messages
         private static ConcurrentQueue<ChatMessage> _messages = new ConcurrentQueue<ChatMessage>();
 
+        public static void AddMessage(ChatMessage chatMsg)
+        {
+            if (chatMsg == null) return;
+            _messages.Enqueue(chatMsg);
+            while (_messages.Count > 10000)
+            {
+                _messages.TryDequeue(out _);
+            }
+        }
+
         [HttpPost]
         public ActionResult SendMessage(string senderId, string senderName, string receiverId, string message, string maDon)
         {
@@ -25,12 +35,29 @@ namespace ĐACN.Controllers
                 Message = message,
                 MaDon = maDon
             };
-            _messages.Enqueue(chatMsg);
+            AddMessage(chatMsg);
             
-            // Limit in-memory messages to prevent memory leak
-            while (_messages.Count > 10000)
+            // Đồng bộ đẩy thông báo real-time qua SignalR ChatHub
+            try
             {
-                _messages.TryDequeue(out _);
+                var hubContext = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<ĐACN.Hubs.ChatHub>();
+                var msgObj = new {
+                    id = chatMsg.Id,
+                    senderId = chatMsg.SenderId,
+                    senderName = chatMsg.SenderName,
+                    receiverId = chatMsg.ReceiverId,
+                    message = chatMsg.Message,
+                    timestamp = (long)(chatMsg.Timestamp.ToUniversalTime() - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalMilliseconds
+                };
+
+                if (!string.IsNullOrEmpty(maDon))
+                {
+                    hubContext.Clients.Group("Order_" + maDon).receiveMessage(msgObj);
+                }
+            }
+            catch
+            {
+                // Bỏ qua lỗi SignalR nếu hub chưa khởi tạo
             }
 
             return Json(new { success = true, msg = new {

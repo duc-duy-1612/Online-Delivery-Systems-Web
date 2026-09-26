@@ -9,3 +9,6 @@ obj/
 *.cache
 packages/
 *.log
+.claude/
+**/.claude/
+**/App_Data/*.txt

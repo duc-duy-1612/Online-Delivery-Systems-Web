@@ -1,0 +1,160 @@
+@model List<DACN.Models.Customizations.CustomizationGroup>
+@{
+    ViewBag.Title = "Cấu Hình Tùy Chọn / Topping";
+    ViewBag.Active = "SanPham";
+    Layout = "~/Views/Shared/_LayoutNhaHang.cshtml";
+    var monAn = ViewBag.MonAn as ĐACN.MonAn;
+}
+
+<style>
+    .topping-group {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        background: #fff;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    }
+    .topping-option {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        align-items: center;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4><i class="fas fa-cogs text-primary"></i> Cấu hình tùy chọn: <strong class="text-danger">@monAn.TenMon</strong></h4>
+        <a href="/NhaHang/QuanLySanPham" class="btn btn-secondary"><i class="fas fa-arrow-left"></i> Quay lại</a>
+    </div>
+
+    <div id="topping-app">
+        <!-- Nơi chứa các nhóm tùy chọn -->
+    </div>
+
+    <button type="button" class="btn btn-outline-primary mt-3" onclick="addGroup()">
+        <i class="fas fa-plus"></i> Thêm Nhóm Tùy Chọn (VD: Chọn Size)
+    </button>
+    <hr />
+    <button type="button" class="btn btn-success btn-lg w-100 fw-bold shadow-sm" onclick="saveToppings()">
+        <i class="fas fa-save"></i> LƯU CẤU HÌNH
+    </button>
+</div>
+
+@section Scripts {
+    <script>
+        // Dữ liệu mẫu ban đầu từ Server
+        let groups = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model));
+
+        function render() {
+            let html = '';
+            groups.forEach((g, gIndex) => {
+                html += `
+                    <div class="topping-group position-relative">
+                        <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2" onclick="removeGroup(${gIndex})"><i class="fas fa-times"></i> Xóa nhóm</button>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Tên nhóm (VD: Kích cỡ, Topping thêm)</label>
+                                <input type="text" class="form-control" value="${g.GroupName || ''}" onchange="updateGroup(${gIndex}, 'GroupName', this.value)">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Bắt buộc chọn?</label>
+                                <select class="form-select" onchange="updateGroup(${gIndex}, 'IsRequired', this.value === 'true')">
+                                    <option value="false" ${!g.IsRequired ? 'selected' : ''}>Không</option>
+                                    <option value="true" ${g.IsRequired ? 'selected' : ''}>Có</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Chọn nhiều?</label>
+                                <select class="form-select" onchange="updateGroup(${gIndex}, 'IsMultiple', this.value === 'true')">
+                                    <option value="false" ${!g.IsMultiple ? 'selected' : ''}>Chỉ chọn 1 (Radio)</option>
+                                    <option value="true" ${g.IsMultiple ? 'selected' : ''}>Chọn nhiều (Checkbox)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <h6 class="fw-bold mt-3 text-secondary">Danh sách lựa chọn</h6>
+                        <div class="ps-3 border-start border-3 border-primary">
+                `;
+                g.Options.forEach((opt, oIndex) => {
+                    html += `
+                        <div class="topping-option">
+                            <input type="text" class="form-control w-50" placeholder="Tên lựa chọn (VD: Size L)" value="${opt.Name || ''}" onchange="updateOption(${gIndex}, ${oIndex}, 'Name', this.value)">
+                            <div class="input-group w-25">
+                                <input type="number" class="form-control text-end" placeholder="Giá" value="${opt.Price}" onchange="updateOption(${gIndex}, ${oIndex}, 'Price', this.value)">
+                                <span class="input-group-text">đ</span>
+                            </div>
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeOption(${gIndex}, ${oIndex})"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `;
+                });
+
+                html += `
+                        <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="addOption(${gIndex})"><i class="fas fa-plus"></i> Thêm lựa chọn</button>
+                        </div>
+                    </div>
+                `;
+            });
+            $('#topping-app').html(html);
+        }
+
+        function addGroup() {
+            groups.push({ GroupName: '', IsRequired: false, IsMultiple: false, Options: [{ Name: '', Price: 0 }] });
+            render();
+        }
+
+        function removeGroup(idx) {
+            groups.splice(idx, 1);
+            render();
+        }
+
+        function updateGroup(idx, field, val) {
+            groups[idx][field] = val;
+        }
+
+        function addOption(gIdx) {
+            groups[gIdx].Options.push({ Name: '', Price: 0 });
+            render();
+        }
+
+        function removeOption(gIdx, oIdx) {
+            groups[gIdx].Options.splice(oIdx, 1);
+            render();
+        }
+
+        function updateOption(gIdx, oIdx, field, val) {
+            if(field === 'Price') val = parseFloat(val) || 0;
+            groups[gIdx].Options[oIdx][field] = val;
+        }
+
+        function saveToppings() {
+            Swal.fire({
+                title: 'Đang lưu...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            $.ajax({
+                url: '/NhaHang/SaveToppingMenu',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ id: '@monAn.MaMon', groups: groups }),
+                success: function (res) {
+                    if (res.success) {
+                        Swal.fire('Thành công', 'Đã lưu cấu hình tùy chọn!', 'success');
+                    } else {
+                        Swal.fire('Lỗi', res.message, 'error');
+                    }
+                },
+                error: function () {
+                    Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ', 'error');
+                }
+            });
+        }
+
+        $(document).ready(function () {
+            render();
+        });
+    </script>
+}

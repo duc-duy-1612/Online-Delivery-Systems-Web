@@ -1,7 +1,6 @@
 @{
     ViewBag.Title = "Lỗi";
     Layout = "~/Views/Shared/_Layout.cshtml";
-    bool isAdmin = ViewBag.IsAdmin ?? false;
 }
 
 <div class="container mt-5">
@@ -18,68 +17,9 @@
                         <strong>@(ViewBag.ErrorMessage ?? "Đã xảy ra lỗi. Vui lòng thử lại sau.")</strong>
                     </div>
 
-                    @if (!string.IsNullOrEmpty(ViewBag.ErrorType) || !string.IsNullOrEmpty(ViewBag.ErrorDetails) || true)
-                    {
-                        <div class="mt-4">
-                            <button class="btn btn-outline-secondary btn-sm w-100" type="button" data-bs-toggle="collapse" data-bs-target="#errorDetails" aria-expanded="false" aria-controls="errorDetails">
-                                <i class="bi bi-info-circle"></i> Xem chi tiết lỗi
-                            </button>
-                            
-                            <div class="collapse mt-3" id="errorDetails">
-                                <div class="card card-body bg-light">
-                                    @if (!string.IsNullOrEmpty(ViewBag.ErrorType))
-                                    {
-                                        <div class="mb-2">
-                                            <strong>Loại lỗi:</strong>
-                                            <code class="text-danger">@ViewBag.ErrorType</code>
-                                        </div>
-                                    }
-                                    
-                                    @if (!string.IsNullOrEmpty(ViewBag.Controller) || !string.IsNullOrEmpty(ViewBag.Action))
-                                    {
-                                        <div class="mb-2">
-                                            <strong>Vị trí:</strong>
-                                            <span class="text-muted">
-                                                @if (!string.IsNullOrEmpty(ViewBag.Controller) && !string.IsNullOrEmpty(ViewBag.Action))
-                                                {
-                                                    <text>@ViewBag.Controller/@ViewBag.Action</text>
-                                                }
-                                                else if (!string.IsNullOrEmpty(ViewBag.Controller))
-                                                {
-                                                    <text>@ViewBag.Controller</text>
-                                                }
-                                            </span>
-                                        </div>
-                                    }
-                                    
-                                    @if (!string.IsNullOrEmpty(ViewBag.InnerException))
-                                    {
-                                        <div class="mb-2">
-                                            <strong>Lỗi bên trong:</strong>
-                                            <div class="alert alert-warning mb-0 mt-1" style="font-size: 0.9em;">
-                                                @ViewBag.InnerException
-                                            </div>
-                                        </div>
-                                    }
-                                    
-                                    @if (!string.IsNullOrEmpty(ViewBag.ErrorDetails))
-                                    {
-                                        <div class="mb-2">
-                                            <strong>Chi tiết kỹ thuật:</strong>
-                                            <pre class="bg-dark text-light p-3 rounded mt-2" style="font-size: 0.85em; max-height: 400px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">@ViewBag.ErrorDetails</pre>
-                                        </div>
-                                    }
-                                    else if (!string.IsNullOrEmpty(ViewBag.StackTrace))
-                                    {
-                                        <div class="mb-2">
-                                            <strong>Chi tiết kỹ thuật:</strong>
-                                            <pre class="bg-dark text-light p-3 rounded mt-2" style="font-size: 0.85em; max-height: 400px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word;">@ViewBag.StackTrace</pre>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    }
+                    <p class="text-muted text-center">
+                        Nếu lỗi vẫn tiếp tục xảy ra, vui lòng liên hệ bộ phận hỗ trợ.
+                    </p>
 
                     <div class="text-center mt-4">
                         <a href="@Url.Action("TrangChu", "Home")" class="btn btn-primary">

@@ -9,10 +9,40 @@
 
 <style>
     body {
-        background-color: #f8f9fa;
+        background: linear-gradient(135deg, #f5f7fa 0%, #e3ecf5 100%);
+        min-height: 100vh;
+        position: relative;
+        overflow-x: hidden;
+    }
+    
+    /* Antigravity Background Floating Orbs */
+    body::before, body::after {
+        content: '';
+        position: fixed;
+        width: 400px;
+        height: 400px;
+        border-radius: 50%;
+        filter: blur(80px);
+        z-index: -1;
+        opacity: 0.6;
+    }
+    body::before {
+        background: rgba(255, 75, 43, 0.2);
+        top: 10%;
+        left: -100px;
+        animation: floatOrb 12s infinite ease-in-out alternate;
+    }
+    body::after {
+        background: rgba(13, 110, 253, 0.2);
+        bottom: 10%;
+        right: -100px;
+        animation: floatOrb 15s infinite ease-in-out alternate-reverse;
+    }
+    @Html.Raw("@")keyframes floatOrb {
+        0% { transform: translate(0, 0) scale(1); }
+        100% { transform: translate(60px, 80px) scale(1.1); }
     }
     .restaurant-header {
-        background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.8)), url('/images/nhahang/@nhaHang.HinhAnh');
         background-size: cover;
         background-position: center;
         color: white;
@@ -42,11 +72,13 @@
     
     /* --- STYLE CARD MÓN ĂN --- */
     .dish-card {
-        border: none;
-        border-radius: 1rem;
-        background: #fff;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 1.2rem;
+        background: rgba(255, 255, 255, 0.85); /* Tăng độ sáng để dễ đọc chữ */
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+        transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
         overflow: hidden;
         display: flex;
         flex-direction: column;
@@ -54,8 +86,9 @@
         position: relative;
     }
     .dish-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        transform: translateY(-10px) translateZ(20px); /* 3D Antigravity Float */
+        box-shadow: 0 20px 40px rgba(0,0,0,0.15), inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+        border-color: rgba(255, 255, 255, 0.7);
     }
     .dish-img-wrapper {
         position: relative;
@@ -79,7 +112,7 @@
         display: flex;
         flex-direction: column;
         flex-grow: 1;
-        background: #fff;
+        background: transparent; /* Changed for Glassmorphism */
         position: relative;
         z-index: 2;
     }
@@ -195,7 +228,7 @@
     }
 </style>
 
-<div class="restaurant-header text-center">
+<div class="restaurant-header text-center" style="background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.8)), url('@Url.Content("~/images/nhahang/" + nhaHang.HinhAnh)');">
     <div class="container">
         <h1 class="restaurant-title mb-3">@nhaHang.TenNH</h1>
         <p class="restaurant-info mb-4"><i class="fas fa-map-marker-alt text-danger me-2"></i>@nhaHang.DiaChi</p>
@@ -312,83 +345,100 @@
 
 @section Scripts {
     <script>
+        $(document).ready(function() {
+            // -- GSAP ANTIGRAVITY ANIMATIONS --
+            if (typeof gsap !== 'undefined') {
+                // 1. Restaurant Header float in
+                gsap.from(".restaurant-header", {
+                    y: -30,
+                    opacity: 0,
+                    duration: 1,
+                    ease: "power2.out"
+                });
+                
+                // Header contents stagger
+                gsap.from(".restaurant-title, .restaurant-info, .badge-rating", {
+                    y: 20,
+                    opacity: 0,
+                    duration: 0.8,
+                    stagger: 0.15,
+                    ease: "back.out(1.5)",
+                    delay: 0.3
+                });
+
+                // 2 & 3. Dish Cards Reveal & Float
+                gsap.utils.toArray('.dish-card').forEach((card, i) => {
+                    gsap.set(card, { y: 40, opacity: 0 }); // Bắt đầu thấp hơn
+                    
+                    gsap.to(card, {
+                        y: 0,
+                        opacity: 1,
+                        duration: 0.6,
+                        delay: i * 0.1, // Stagger effect
+                        ease: "power2.out",
+                        onComplete: () => {
+                            // Bắt đầu nhấp nhô liên tục SAU KHI đã hiện xong
+                            gsap.to(card, {
+                                y: "-=8",
+                                duration: 1.5 + Math.random(),
+                                yoyo: true,
+                                repeat: -1,
+                                ease: "sine.inOut"
+                            });
+                        }
+                    });
+                });
+                
+                // 4. Review Cards Reveal
+                gsap.utils.toArray('.review-card').forEach((card, i) => {
+                    gsap.from(card, {
+                        x: -30,
+                        opacity: 0,
+                        duration: 0.6,
+                        delay: i * 0.15,
+                        ease: "power2.out"
+                    });
+                });
+            }
+        });
+
         let selectedDishId = null;
         let selectedDishImg = null;
         let selectedDishRect = null;
 
-        $(document).on("click", ".btn-add-to-cart", function (e) {
-            e.preventDefault(); // Prevent default if inside a link
-            
-            const card = $(this).closest('.dish-card');
-            const imgElem = card.find('.dish-img');
-            selectedDishImg = imgElem.attr('src');
-            selectedDishRect = imgElem[0].getBoundingClientRect();
-            
-            selectedDishId = $(this).data("mamon");
-            
-            const btn = $(this);
-            const originalText = btn.html();
-            
+        function executeAddToCart(dishId, btn, originalText, note, extraPrice) {
             btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
-
             $.ajax({
                 url: '@Url.Action("ThemVaoGio", "KhachHang")',
                 type: 'POST',
-                data: { id: selectedDishId, note: "" },
+                data: { id: dishId, note: note, extraPrice: extraPrice },
                 success: function (res) {
                     btn.html(originalText).prop('disabled', false);
                     if (res && res.success) {
-                        
-                        // Execute animation
                         if (selectedDishImg && selectedDishRect) {
                             var flyImg = $('<img class="fly-img" src="' + selectedDishImg + '">');
                             $('body').append(flyImg);
-                            
                             var targetCart = $('#stickyCartBar').hasClass('visible') ? $('#stickyCartCount') : $('#cartBadge');
                             if(targetCart.length > 0) {
                                 var targetRect = targetCart[0].getBoundingClientRect();
                                 flyImg.css({
-                                    top: selectedDishRect.top + 'px',
-                                    left: selectedDishRect.left + 'px',
-                                    width: selectedDishRect.width + 'px',
-                                    height: selectedDishRect.height + 'px'
+                                    top: selectedDishRect.top + 'px', left: selectedDishRect.left + 'px',
+                                    width: selectedDishRect.width + 'px', height: selectedDishRect.height + 'px'
                                 });
-                                
                                 setTimeout(function() {
-                                    flyImg.css({
-                                        top: targetRect.top + 'px',
-                                        left: targetRect.left + 'px',
-                                        width: '20px',
-                                        height: '20px',
-                                        opacity: 0.2
-                                    });
+                                    flyImg.css({ top: targetRect.top + 'px', left: targetRect.left + 'px', width: '20px', height: '20px', opacity: 0.2 });
                                 }, 50);
-                                
                                 setTimeout(function() {
                                     flyImg.remove();
-                                    // Trigger badge scale effect
                                     targetCart.css('transform', 'scale(1.5)');
                                     setTimeout(() => targetCart.css('transform', 'scale(1)'), 200);
-                                    
-                                    if (typeof updateCartBadge === 'function') {
-                                        updateCartBadge();
-                                    }
+                                    if (typeof updateCartBadge === 'function') updateCartBadge();
                                 }, 800);
                             } else {
                                 if (typeof updateCartBadge === 'function') updateCartBadge();
                             }
-                        } else {
-                            if (typeof updateCartBadge === 'function') updateCartBadge();
                         }
-                        
-                        Swal.fire({
-                            toast: true,
-                            position: 'top-end',
-                            icon: 'success',
-                            title: 'Đã thêm vào giỏ hàng',
-                            showConfirmButton: false,
-                            timer: 1500
-                        });
+                        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã thêm vào giỏ hàng', showConfirmButton: false, timer: 1800, timerProgressBar: true, background: '#1e2024', color: '#ffffff' });
                     } else {
                         Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message || "Không thể thêm món vào giỏ hàng." });
                     }
@@ -397,6 +447,106 @@
                     btn.html(originalText).prop('disabled', false);
                     Swal.fire({ icon: 'error', title: 'Lỗi kết nối', text: "Lỗi kết nối server. Vui lòng thử lại." });
                 }
+            });
+        }
+
+        $(document).on("click", ".btn-add-to-cart", function (e) {
+            e.preventDefault();
+            const card = $(this).closest('.dish-card');
+            const imgElem = card.find('.dish-img');
+            selectedDishImg = imgElem.attr('src');
+            selectedDishRect = imgElem[0].getBoundingClientRect();
+            selectedDishId = $(this).data("mamon");
+            
+            const btn = $(this);
+            const originalText = btn.html();
+            
+            btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+
+            // Fetch Toppings
+            $.get('@Url.Action("GetToppings", "KhachHang")?id=' + selectedDishId, function (res) {
+                btn.html(originalText).prop('disabled', false);
+                if (res.success && res.data && res.data.length > 0) {
+                    let html = '<div class="text-start" id="toppingForm" style="max-height: 60vh; overflow-y: auto;">';
+                    res.data.forEach((group, gIdx) => {
+                        html += `<div class="mb-3 p-3 border rounded">
+                                    <h6 class="fw-bold mb-2">${group.GroupName} ${group.IsRequired ? '<span class="text-danger">*</span>' : ''}</h6>`;
+                        group.Options.forEach((opt, oIdx) => {
+                            let inputType = group.IsMultiple ? 'checkbox' : 'radio';
+                            let inputName = 'group_' + gIdx;
+                            let priceText = opt.Price > 0 ? `+${opt.Price.toLocaleString('vi-VN')}đ` : 'Miễn phí';
+                            html += `<div class="form-check d-flex justify-content-between align-items-center">
+                                        <label class="form-check-label w-100" style="cursor: pointer;">
+                                            <input class="form-check-input topping-input" type="${inputType}" name="${inputName}" 
+                                                   data-group="${group.GroupName}" data-name="${opt.Name}" data-price="${opt.Price}" 
+                                                   ${group.IsRequired && !group.IsMultiple && oIdx === 0 ? 'checked' : ''}>
+                                            ${opt.Name}
+                                        </label>
+                                        <span class="text-muted small">${priceText}</span>
+                                     </div>`;
+                        });
+                        html += `</div>`;
+                    });
+                    html += `
+                        <div class="mb-3">
+                            <label class="fw-bold mb-2">Ghi chú cho quán (Tùy chọn)</label>
+                            <input type="text" id="toppingNote" class="form-control" placeholder="Ví dụ: Ít đá, không hành...">
+                        </div>
+                    </div>`;
+
+                    Swal.fire({
+                        title: 'Tùy chọn món',
+                        html: html,
+                        showCancelButton: true,
+                        confirmButtonText: 'Thêm vào giỏ',
+                        cancelButtonText: 'Hủy',
+                        confirmButtonColor: '#ff5a2b',
+                        preConfirm: () => {
+                            let selectedStr = [];
+                            let extraPrice = 0;
+                            let isValid = true;
+                            
+                            // Validate required groups
+                            res.data.forEach((group, gIdx) => {
+                                if (group.IsRequired) {
+                                    let checked = $(`#toppingForm input[name="group_${gIdx}"]:checked`).length;
+                                    if (checked === 0) {
+                                        Swal.showValidationMessage(`Vui lòng chọn ${group.GroupName}!`);
+                                        isValid = false;
+                                    }
+                                }
+                            });
+                            if (!isValid) return false;
+
+                            // Collect data
+                            $('#toppingForm .topping-input:checked').each(function() {
+                                let gName = $(this).data('group');
+                                let oName = $(this).data('name');
+                                let oPrice = parseFloat($(this).data('price')) || 0;
+                                selectedStr.push(`${gName}: ${oName}`);
+                                extraPrice += oPrice;
+                            });
+
+                            let userNote = $('#toppingNote').val().trim();
+                            let finalNote = selectedStr.join(" | ");
+                            if (userNote) {
+                                finalNote += (finalNote ? " | " : "") + `Ghi chú: ${userNote}`;
+                            }
+
+                            return { note: finalNote, price: extraPrice };
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            executeAddToCart(selectedDishId, btn, originalText, result.value.note, result.value.price);
+                        }
+                    });
+                } else {
+                    // No toppings, add directly
+                    executeAddToCart(selectedDishId, btn, originalText, "", 0);
+                }
+            }).fail(function() {
+                btn.html(originalText).prop('disabled', false);
+                Swal.fire('Lỗi', 'Không thể lấy thông tin tùy chọn', 'error');
             });
         });
     </script>

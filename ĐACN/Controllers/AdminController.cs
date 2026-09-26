@@ -20,6 +20,7 @@ namespace ĐACN.Controllers
     [AdminAuthorize]
     public class AdminController : BaseController
     {
+        private readonly ĐACN.Services.CacheService _cacheService = new ĐACN.Services.CacheService();
 
         public ActionResult DanhSachCuaHang(string keyword, string status)
         {
@@ -259,6 +260,9 @@ namespace ĐACN.Controllers
         {
             try
             {
+                string fromEmail = System.Configuration.ConfigurationManager.AppSettings["SmtpFrom"] ?? "noreply@tapfood.vn";
+                string smtpPassword = System.Configuration.ConfigurationManager.AppSettings["SmtpPassword"] ?? "";
+
                 string subject = chapNhan ? "Cửa hàng đã được phê duyệt" : "Cửa hàng bị từ chối";
                 string body = chapNhan
                     ? $"Xin chào {tenNhaHang}, cửa hàng của bạn đã được phê duyệt và có thể hoạt động trên hệ thống FoodDelivery."
@@ -266,20 +270,20 @@ namespace ĐACN.Controllers
 
                 MailMessage mail = new MailMessage();
                 mail.To.Add(email);
-                mail.From = new MailAddress("lynki1509@gmail.com");
+                mail.From = new MailAddress(fromEmail);
                 mail.Subject = subject;
                 mail.Body = body;
                 mail.IsBodyHtml = true;
 
                 SmtpClient smtp = new SmtpClient("smtp.gmail.com");
                 smtp.Port = 587;
-                smtp.Credentials = new NetworkCredential("lynki1509@gmail.com", "123456");
+                smtp.Credentials = new NetworkCredential(fromEmail, smtpPassword);
                 smtp.EnableSsl = true;
                 smtp.Send(mail);
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Không thể gửi email: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine("Không thể gửi email: " + ex.Message);
             }
         }
 
@@ -419,7 +423,8 @@ namespace ĐACN.Controllers
             if (shipper.TaiKhoan != null)
             {
                 shipper.TaiKhoan.TenDangNhap = TenDangNhap;
-                shipper.TaiKhoan.MatKhau = MatKhau;
+                if (!string.IsNullOrEmpty(MatKhau))
+                    shipper.TaiKhoan.MatKhau = BCrypt.Net.BCrypt.HashPassword(MatKhau);
                 shipper.TaiKhoan.VaiTro = VaiTro;
                 shipper.TaiKhoan.TrangThai = TrangThai;
             }
@@ -591,6 +596,7 @@ namespace ĐACN.Controllers
 
             db.LoaiMonAns.Add(loai);
             db.SaveChanges();
+            _cacheService.Remove("Home_DanhMucList");
 
             TempData["Success"] = "Thêm danh mục mới thành công!";
             return RedirectToAction("DanhMucMonAn");
@@ -623,6 +629,7 @@ namespace ĐACN.Controllers
             }
 
             db.SaveChanges();
+            _cacheService.Remove("Home_DanhMucList");
             TempData["Success"] = "Cập nhật danh mục thành công!";
             return RedirectToAction("DanhMucMonAn");
         }
@@ -642,6 +649,7 @@ namespace ĐACN.Controllers
 
             db.LoaiMonAns.Remove(loai);
             db.SaveChanges();
+            _cacheService.Remove("Home_DanhMucList");
             TempData["Success"] = "Đã xóa danh mục.";
             return RedirectToAction("DanhMucMonAn");
         }
@@ -751,7 +759,8 @@ namespace ĐACN.Controllers
             ViewBag.Type = type;
 
             var doanhThu = db.DonHangs
-                .Where(d => d.ThoiGianDat != null && d.TongTien != null)
+                .Where(d => d.ThoiGianDat != null && d.TongTien != null && 
+                           (d.TrangThai == "Hoàn thành" || d.TrangThai == "Hoàn tất" || d.TrangThai == "True"))
                 .GroupBy(d => new
                 {
                     Nam = d.ThoiGianDat.HasValue ? d.ThoiGianDat.Value.Year : 0,
@@ -793,10 +802,11 @@ namespace ĐACN.Controllers
             return View();
         }
         [HttpPost]
-        public FileResult ExportThongKe(string format)
+        public ActionResult ExportThongKe(string format)
         {
             var data = db.DonHangs
-                .Where(d => d.ThoiGianDat != null && d.TongTien != null)
+                .Where(d => d.ThoiGianDat != null && d.TongTien != null && 
+                           (d.TrangThai == "Hoàn thành" || d.TrangThai == "Hoàn tất" || d.TrangThai == "True"))
                 .GroupBy(d => new
                 {
                     Nam = d.ThoiGianDat.HasValue ? d.ThoiGianDat.Value.Year : 0,
@@ -854,7 +864,7 @@ namespace ĐACN.Controllers
                         "ThongKe_FoodDelivery.xlsx");
                 }
             }
-            return null;
+            return RedirectToAction("ThongKe");
         }
 
         public ActionResult AdminViews()
@@ -878,5 +888,74 @@ namespace ĐACN.Controllers
         public ActionResult QuickCapPhepShipper() => RedirectToAction("CapPhepShipper");
 
         public ActionResult QuickThongKe() => RedirectToAction("ThongKe");
+
+        // === VOUCHER MANAGEMENT ===
+        public ActionResult QuanLyVoucher()
+        {
+            var ds = Models.VoucherStore.DanhSachVoucher;
+            return View(ds);
+        }
+
+        [HttpPost]
+        public ActionResult LuuVoucher(Models.Voucher v, bool isEdit, string oldMaVoucher)
+        {
+            try
+            {
+                if (isEdit)
+                {
+                    // Check if new code already exists and it's different from the old code
+                    if (!v.MaVoucher.Equals(oldMaVoucher, StringComparison.OrdinalIgnoreCase) && 
+                        Models.VoucherStore.DanhSachVoucher.Any(x => x.MaVoucher.Equals(v.MaVoucher, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        return Json(new { success = false, message = "Mã voucher mới này đã tồn tại!" });
+                    }
+                    
+                    Models.VoucherStore.UpdateVoucher(oldMaVoucher, v);
+                    return Json(new { success = true, message = "Cập nhật voucher thành công!" });
+                }
+                else
+                {
+                    if (Models.VoucherStore.DanhSachVoucher.Any(x => x.MaVoucher.Equals(v.MaVoucher, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        return Json(new { success = false, message = "Mã voucher này đã tồn tại!" });
+                    }
+                    Models.VoucherStore.AddVoucher(v);
+                    return Json(new { success = true, message = "Thêm voucher thành công!" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống. Vui lòng thử lại sau." });
+            }
+        }
+
+        [HttpPost]
+        public ActionResult XoaVoucher(string maVoucher)
+        {
+            try
+            {
+                Models.VoucherStore.DeleteVoucher(maVoucher);
+                return Json(new { success = true, message = "Đã xóa voucher!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống. Vui lòng thử lại sau." });
+            }
+        }
+
+        [HttpPost]
+        public ActionResult ToggleTrangThaiVoucher(string maVoucher)
+        {
+            try
+            {
+                Models.VoucherStore.ToggleVoucherStatus(maVoucher);
+                return Json(new { success = true, message = "Đã cập nhật trạng thái!" });
+            }
+            catch (Exception ex)
+            {
+                LogError(ex, "ToggleTrangThaiVoucher");
+                return Json(new { success = false, message = "Lỗi hệ thống. Vui lòng thử lại sau." });
+            }
+        }
     }
 }

@@ -1,0 +1,328 @@
+/* ==========================================================================
+   TAPFOOD 3D & ULTRA ANIMATION ENGINE (animations-3d.css)
+   Features:
+   1. 3D Card Tilt with Specular Glare (Perspective 1200px)
+   2. 3D Card Flip (Order Cards)
+   3. Counter Animation Pop & Glow
+   4. Parallax Floating Elements & Depth Layers
+   5. Modern Skeleton Loading Shimmer (Replaces Spinners)
+   6. Page Entrance Stagger Animations
+   7. Glowing Animated Progress Bars
+   8. Particle Background Canvas Styling
+   ========================================================================== */
+
+/* ===== 1. 3D TILT & INTERACTIVE DEPTH ===== */
+.tilt-3d,
+.order-card,
+.income-card,
+.calendar-day,
+.premium-card,
+.kpi-card {
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    will-change: transform, box-shadow;
+    position: relative;
+}
+
+.tilt-3d:hover,
+.order-card:hover,
+.income-card:hover {
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(255, 90, 43, 0.08) !important;
+}
+
+/* Dynamic Glare Reflection overlay */
+.tilt-glare {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background: radial-gradient(circle at var(--glare-x, 50%) var(--glare-y, 50%), rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 75%);
+    opacity: var(--glare-opacity, 0);
+    transition: opacity 0.3s ease;
+    z-index: 10;
+}
+
+/* 3D Depth Pop on Inner Elements */
+.tilt-3d > *,
+.order-card > * {
+    transform: translateZ(20px);
+}
+
+/* Ensure admin cards, tables, and role lists are strictly fixed and static */
+.admin-card,
+.admin-card > *,
+.admin-main .table-responsive,
+.admin-main table,
+.admin-main table tr,
+.admin-main table td,
+.admin-main table th,
+.table-responsive,
+table {
+    transform: none !important;
+    perspective: none !important;
+    transform-style: flat !important;
+}
+
+/* ===== 2. 3D CARD FLIP (ORDER CARDS) ===== */
+.card-flip-wrap {
+    perspective: 1200px;
+    margin-bottom: 24px;
+}
+
+.card-flip-inner {
+    position: relative;
+    width: 100%;
+    min-height: 220px;
+    transform-style: preserve-3d;
+    transition: transform 0.75s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border-radius: 16px;
+}
+
+.card-flip-wrap:hover .card-flip-inner,
+.card-flip-wrap.flipped .card-flip-inner {
+    transform: rotateY(180deg);
+}
+
+.card-flip-front,
+.card-flip-back {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 16px;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    padding: 24px;
+    background: #ffffff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.card-flip-back {
+    transform: rotateY(180deg);
+    background: linear-gradient(145deg, #1e293b, #0f172a);
+    color: #f8fafc;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.25);
+}
+
+.card-flip-hint {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.card-flip-hint:hover {
+    color: #ff5a2b;
+}
+
+/* ===== 3. ENTRANCE STAGGER ANIMATIONS ===== */
+@keyframes entranceSlideUp {
+    0% {
+        opacity: 0;
+        transform: translateY(28px) scale(0.98);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes entranceFadeIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes popGlow {
+    0% { transform: scale(0.9); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.animate-entrance {
+    animation: entranceSlideUp 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade {
+    animation: entranceFadeIn 0.5s ease-out forwards;
+}
+
+/* Stagger delays */
+.stagger-1 { animation-delay: 0.06s; }
+.stagger-2 { animation-delay: 0.12s; }
+.stagger-3 { animation-delay: 0.18s; }
+.stagger-4 { animation-delay: 0.24s; }
+.stagger-5 { animation-delay: 0.30s; }
+.stagger-6 { animation-delay: 0.36s; }
+
+/* ===== 4. SKELETON LOADING SHIMMER ANIMATION ===== */
+@keyframes skeletonShimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+.skeleton-shimmer {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: skeletonShimmer 1.6s infinite ease-in-out;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+.skeleton-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.skeleton-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+}
+
+.skeleton-title {
+    width: 60%;
+    height: 20px;
+    margin-bottom: 12px;
+}
+
+.skeleton-line {
+    width: 100%;
+    height: 14px;
+    margin-bottom: 8px;
+}
+
+.skeleton-line.short {
+    width: 40%;
+}
+
+/* Dark mode skeleton */
+.theme-dark .skeleton-shimmer,
+.card-flip-back .skeleton-shimmer {
+    background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+    background-size: 200% 100%;
+}
+
+/* ===== 5. STAT COUNTER GLOW & POP ===== */
+.counter-pop {
+    animation: popGlow 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: inline-block;
+}
+
+.stat-glow {
+    text-shadow: 0 0 15px rgba(255, 90, 43, 0.4);
+}
+
+/* ===== 6. ANIMATED PROGRESS BARS ===== */
+@keyframes progressGlowPulse {
+    0%, 100% {
+        box-shadow: 0 0 8px rgba(255, 90, 43, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 16px rgba(255, 90, 43, 0.6);
+    }
+}
+
+@keyframes progressStripes {
+    0% { background-position: 1rem 0; }
+    100% { background-position: 0 0; }
+}
+
+.animated-progress-bar {
+    width: 0%;
+    transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    background: linear-gradient(135deg, #ff5a2b, #ff9f1c);
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+    animation: progressGlowPulse 2.5s infinite;
+}
+
+.animated-progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background-image: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, 0.18) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.18) 50%,
+        rgba(255, 255, 255, 0.18) 75%,
+        transparent 75%,
+        transparent
+    );
+    background-size: 1rem 1rem;
+    animation: progressStripes 1s linear infinite;
+}
+
+/* ===== 7. PARALLAX & FLOATING 3D ELEMENTS ===== */
+@keyframes float3D {
+    0% {
+        transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-10px) rotate(1.5deg);
+    }
+    100% {
+        transform: translateY(0px) rotate(0deg);
+    }
+}
+
+.float-3d {
+    animation: float3D 6s ease-in-out infinite;
+    will-change: transform;
+}
+
+.float-3d-slow {
+    animation: float3D 9s ease-in-out infinite reverse;
+    will-change: transform;
+}
+
+.parallax-layer {
+    transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: transform;
+}
+
+/* ===== 8. PARTICLE CANVAS CONTAINER ===== */
+.particle-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.particle-parent {
+    position: relative;
+    overflow: hidden;
+}

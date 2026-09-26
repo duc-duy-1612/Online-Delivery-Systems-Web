@@ -8,17 +8,19 @@ using System.Linq;
 using System.Net.Http;
 using System.Web;
 using System.Web.Mvc;
+using System.Threading.Tasks;
 
 namespace ĐACN.Controllers
 {
     public class HomeController : BaseController
     {
-        private const string ORS_API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImFhZWYwMjY0NjIzZTRmNGU4MTE2NGQzYzlmZjJkYTYxIiwiaCI6Im11cm11cjY0In0=";
+        private readonly ĐACN.Services.CacheService _cacheService = new ĐACN.Services.CacheService();
+        private static readonly string ORS_API_KEY = System.Configuration.ConfigurationManager.AppSettings["ORS_API_KEY"];
 
-
-        private (double? lat, double? lng) GeoCodeORS(string address)
+        private async Task<(double? lat, double? lng)> GeoCodeORSAsync(string address)
         {
-            if (string.IsNullOrEmpty(address)) return (null, null);            try
+            if (string.IsNullOrEmpty(address)) return (null, null);
+            try
             {
                 string cleanedAddress = RemoveVietnameseSigns(address).Trim();
                 if (!cleanedAddress.ToLower().Contains("vietnam") && !cleanedAddress.ToLower().Contains("viet nam"))
@@ -27,11 +29,11 @@ namespace ĐACN.Controllers
                 _sharedHttpClient.DefaultRequestHeaders.Remove("User-Agent");
                 _sharedHttpClient.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "TapFoodApp");
                 var url = $"https://api.openrouteservice.org/geocode/search?api_key={ORS_API_KEY}&text={Uri.EscapeDataString(cleanedAddress)}&size=1";
-                var response = _sharedHttpClient.GetAsync(url).Result;
+                var response = await _sharedHttpClient.GetAsync(url);
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var json = response.Content.ReadAsStringAsync().Result;
+                    var json = await response.Content.ReadAsStringAsync();
                     var obj = JObject.Parse(json);
                     var features = obj["features"] as JArray;
                     if (features != null && features.Count > 0)
@@ -41,7 +43,10 @@ namespace ĐACN.Controllers
                     }
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[GeoCodeORSAsync] Error geocoding address '{address}': {ex.Message}");
+            }
             return (null, null);
         }
 
@@ -59,27 +64,28 @@ namespace ĐACN.Controllers
         }
 
 
-        public ActionResult TrangChu(string sort = "default", double? lat = null, double? lng = null, string search = "")
+        private async Task<(List<NhaHangViewModel> nhaHangData, List<NhaHangViewModel> recommended)> ProcessHomeDataAsync(string sort, double? lat, double? lng, string search)
         {
             if ((lat == null || lng == null) && Session["MaKH"] != null)
             {
                 string maKH = Session["MaKH"] as string;
-                var kh = db.KhachHangs.Find(maKH);
+                var kh = await db.KhachHangs.FindAsync(maKH);
                 if (kh != null)
                 {
                     if ((kh.Latitude == null || kh.Latitude == 0) && !string.IsNullOrEmpty(kh.DiaChi))
                     {
-                        var coords = GeoCodeORS(kh.DiaChi);
+                        var coords = await GeoCodeORSAsync(kh.DiaChi);
                         if (coords.lat.HasValue)
                         {
-                            kh.Latitude = coords.lat; kh.Longitude = coords.lng; db.SaveChanges();
+                            kh.Latitude = coords.lat; kh.Longitude = coords.lng; await db.SaveChangesAsync();
                         }
                     }
-                    lat = kh.Latitude; lng = kh.Longitude;
+                    lat = kh.Latitude ?? lat;
+                    lng = kh.Longitude ?? lng;
                 }
             }
 
-            var nhaHangData = LoadNhaHangData(lat, lng);
+            var nhaHangData = await LoadNhaHangDataAsync(lat, lng);
 
             if (!string.IsNullOrEmpty(search))
             {
@@ -87,7 +93,7 @@ namespace ĐACN.Controllers
                 var searchResult = nhaHangData.Where(x => RemoveVietnameseSigns(x.TenNH).ToLower().Contains(keyword) || RemoveVietnameseSigns(x.DiaChi).ToLower().Contains(keyword)).ToList();
 
                 var maNHHoatDong = nhaHangData.Select(nh => nh.MaNH).ToList();
-                var monAns = db.MonAns.Where(m => maNHHoatDong.Contains(m.MaNH)).ToList();
+                var monAns = await db.MonAns.Where(m => maNHHoatDong.Contains(m.MaNH)).ToListAsync();
                 var maNHTheoMon = monAns.Where(m => RemoveVietnameseSigns(m.TenMon).ToLower().Contains(keyword)).Select(m => m.MaNH).Distinct().ToList();
                 var searchMonData = nhaHangData.Where(nh => maNHTheoMon.Contains(nh.MaNH)).ToList();
                 searchResult.AddRange(searchMonData);
@@ -100,12 +106,11 @@ namespace ĐACN.Controllers
             if (Session["MaKH"] != null)
             {
                 string maKH = Session["MaKH"] as string;
-                // Lấy 5 đơn hàng gần nhất để phân tích danh mục (giảm tải memory thay vì lấy toàn bộ ChiTietDonHangs)
-                var recentOrders = db.ChiTietDonHangs
+                var recentOrders = await db.ChiTietDonHangs
                     .Where(c => c.DonHang.MaKH == maKH)
                     .OrderByDescending(c => c.DonHang.ThoiGianDat)
                     .Take(20)
-                    .ToList();
+                    .ToListAsync();
 
                 var topCategory = recentOrders
                     .GroupBy(c => c.MonAn.MaLoai)
@@ -115,8 +120,7 @@ namespace ĐACN.Controllers
 
                 if (topCategory != null)
                 {
-                    var maNHList = db.MonAns.Where(m => m.MaLoai == topCategory).Select(m => m.MaNH).Distinct().ToList();
-                    // Sử dụng lại nhaHangData đã lấy ở trên, tránh gọi LoadNhaHangData() lần 2
+                    var maNHList = await db.MonAns.Where(m => m.MaLoai == topCategory).Select(m => m.MaNH).Distinct().ToListAsync();
                     recommendedNhaHang = nhaHangData
                         .Where(n => maNHList.Contains(n.MaNH))
                         .OrderByDescending(n => n.Score)
@@ -124,15 +128,17 @@ namespace ĐACN.Controllers
                         .ToList();
                 }
             }
+            return (nhaHangData, recommendedNhaHang);
+        }
 
+        public async Task<ActionResult> TrangChu(string sort = "default", double? lat = null, double? lng = null, string search = "")
+        {
+            var data = await ProcessHomeDataAsync(sort, lat, lng, search);
+
+            var loais = await db.LoaiMonAns.ToListAsync();
             var model = new TrangChuViewModel
             {
-                DanhMuc = db.LoaiMonAns.Select(x => new LoaiMonAnViewModel
-                {
-                    MaLoai = x.MaLoai,
-                    TenLoai = x.TenLoai,
-                    HinhAnh = x.HinhAnh
-                }).ToList().Select(x => new LoaiMonAnViewModel
+                DanhMuc = loais.Select(x => new LoaiMonAnViewModel
                 {
                     MaLoai = x.MaLoai,
                     TenLoai = x.TenLoai,
@@ -148,70 +154,18 @@ namespace ĐACN.Controllers
         }
 
         [HttpGet]
-        public ActionResult GetHomeData(string sort = "default", double? lat = null, double? lng = null, string search = "")
+        public async Task<ActionResult> GetHomeData(string sort = "default", double? lat = null, double? lng = null, string search = "")
         {
-            if ((lat == null || lng == null) && Session["MaKH"] != null)
-            {
-                string maKH = Session["MaKH"] as string;
-                var kh = db.KhachHangs.Find(maKH);
-                if (kh != null)
-                {
-                    lat = kh.Latitude; lng = kh.Longitude;
-                }
-            }
-
-            var nhaHangData = LoadNhaHangData(lat, lng);
-
-            if (!string.IsNullOrEmpty(search))
-            {
-                string keyword = RemoveVietnameseSigns(search).ToLower().Trim();
-                var searchResult = nhaHangData.Where(x => RemoveVietnameseSigns(x.TenNH).ToLower().Contains(keyword) || RemoveVietnameseSigns(x.DiaChi).ToLower().Contains(keyword)).ToList();
-
-                var maNHHoatDong = nhaHangData.Select(nh => nh.MaNH).ToList();
-                var monAns = db.MonAns.Where(m => maNHHoatDong.Contains(m.MaNH)).ToList();
-                var maNHTheoMon = monAns.Where(m => RemoveVietnameseSigns(m.TenMon).ToLower().Contains(keyword)).Select(m => m.MaNH).Distinct().ToList();
-                var searchMonData = nhaHangData.Where(nh => maNHTheoMon.Contains(nh.MaNH)).ToList();
-                searchResult.AddRange(searchMonData);
-                nhaHangData = searchResult.GroupBy(x => x.MaNH).Select(g => g.First()).ToList();
-            }
-
-            nhaHangData = ApplySort(nhaHangData, sort);
-
-            List<NhaHangViewModel> recommendedNhaHang = null;
-            if (Session["MaKH"] != null)
-            {
-                string maKH = Session["MaKH"] as string;
-                var recentOrders = db.ChiTietDonHangs
-                    .Where(c => c.DonHang.MaKH == maKH)
-                    .OrderByDescending(c => c.DonHang.ThoiGianDat)
-                    .Take(20)
-                    .ToList();
-
-                var topCategory = recentOrders
-                    .GroupBy(c => c.MonAn.MaLoai)
-                    .OrderByDescending(g => g.Count())
-                    .Select(g => g.Key)
-                    .FirstOrDefault();
-
-                if (topCategory != null)
-                {
-                    var maNHList = db.MonAns.Where(m => m.MaLoai == topCategory).Select(m => m.MaNH).Distinct().ToList();
-                    recommendedNhaHang = nhaHangData
-                        .Where(n => maNHList.Contains(n.MaNH))
-                        .OrderByDescending(n => n.Score)
-                        .Take(4)
-                        .ToList();
-                }
-            }
+            var data = await ProcessHomeDataAsync(sort, lat, lng, search);
 
             string htmlRecommended = "";
             string htmlNhaHang = "";
 
-            if (recommendedNhaHang != null && recommendedNhaHang.Any())
+            if (data.recommended != null && data.recommended.Any())
             {
-                htmlRecommended = RenderPartialViewToString("_NhaHangNoiBatPartial", recommendedNhaHang);
+                htmlRecommended = RenderPartialViewToString("_NhaHangNoiBatPartial", data.recommended);
             }
-            htmlNhaHang = RenderPartialViewToString("_NhaHangNoiBatPartial", nhaHangData);
+            htmlNhaHang = RenderPartialViewToString("_NhaHangNoiBatPartial", data.nhaHangData);
 
             return Json(new { recommended = htmlRecommended, nhahang = htmlNhaHang }, JsonRequestBehavior.AllowGet);
         }
@@ -231,48 +185,59 @@ namespace ĐACN.Controllers
             }
         }
 
-        public ActionResult DanhMuc()
+        public async Task<ActionResult> DanhMuc()
         {
-
-            var danhMucList = db.LoaiMonAns.ToList().Select(x => new LoaiMonAnViewModel
+            var danhMucList = await _cacheService.GetOrSetAsync("Home_DanhMucList", 30, async () =>
             {
-                MaLoai = x.MaLoai,
-                TenLoai = x.TenLoai,
-                HinhAnh = string.IsNullOrEmpty(x.HinhAnh) ? GetImageNameByMaLoai(x.MaLoai, x.TenLoai) : x.HinhAnh
-            }).ToList();
+                var loais = await db.LoaiMonAns.ToListAsync();
+                return loais.Select(x => new LoaiMonAnViewModel
+                {
+                    MaLoai = x.MaLoai,
+                    TenLoai = x.TenLoai,
+                    HinhAnh = string.IsNullOrEmpty(x.HinhAnh) ? GetImageNameByMaLoai(x.MaLoai, x.TenLoai) : x.HinhAnh
+                }).ToList();
+            });
 
             return View(danhMucList);
         }
 
-        public ActionResult NhaHang(string sort = "default", double? lat = null, double? lng = null)
+        public async Task<ActionResult> NhaHang(string sort = "default", double? lat = null, double? lng = null)
         {
             if ((lat == null || lng == null) && Session["MaKH"] != null)
             {
                 string maKH = Session["MaKH"] as string;
-                var kh = db.KhachHangs.Find(maKH);
-                if (kh != null) { lat = kh.Latitude; lng = kh.Longitude; }
+                var kh = await db.KhachHangs.FindAsync(maKH);
+                if (kh != null)
+                {
+                    lat = kh.Latitude; lng = kh.Longitude;
+                }
             }
-            var nhaHangData = LoadNhaHangData(lat, lng);
+
+            var nhaHangData = await LoadNhaHangDataAsync(lat, lng);
             nhaHangData = ApplySort(nhaHangData, sort);
-            ViewBag.CurrentSort = sort;
+
             return View(nhaHangData);
         }
 
-        public ActionResult _NhaHangNoiBatPartial(List<NhaHangViewModel> data = null)
+        public async Task<ActionResult> _NhaHangNoiBatPartial(List<NhaHangViewModel> data = null)
         {
             if (data != null) return PartialView(data);
-            var defaultData = LoadNhaHangData().OrderByDescending(x => x.Score).Take(8).ToList();
+            var defaultData = (await LoadNhaHangDataAsync()).OrderByDescending(x => x.Score).Take(8).ToList();
             return PartialView(defaultData);
         }
 
         public ActionResult _DanhMucPartial()
         {
-            var danhMucList = db.LoaiMonAns.ToList().Select(x => new LoaiMonAnViewModel
+            var danhMucList = _cacheService.GetOrSet("Home_DanhMucList", 30, () =>
             {
-                MaLoai = x.MaLoai,
-                TenLoai = x.TenLoai,
-                HinhAnh = string.IsNullOrEmpty(x.HinhAnh) ? GetImageNameByMaLoai(x.MaLoai, x.TenLoai) : x.HinhAnh
-            }).ToList();
+                var loais = db.LoaiMonAns.ToList();
+                return loais.Select(x => new LoaiMonAnViewModel
+                {
+                    MaLoai = x.MaLoai,
+                    TenLoai = x.TenLoai,
+                    HinhAnh = string.IsNullOrEmpty(x.HinhAnh) ? GetImageNameByMaLoai(x.MaLoai, x.TenLoai) : x.HinhAnh
+                }).ToList();
+            });
             return PartialView(danhMucList);
         }
 
@@ -333,15 +298,53 @@ namespace ĐACN.Controllers
         [HttpPost]
         public JsonResult Login(string username, string password)
         {
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password)) return Json(new { success = false, message = "Vui lòng nhập đầy đủ thông tin." });
-            var tk = db.TaiKhoans.FirstOrDefault(x => x.TenDangNhap == username && x.MatKhau == password);
-            if (tk == null) return Json(new { success = false, message = "Sai tên đăng nhập hoặc mật khẩu." });
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password)) 
+                return Json(new { success = false, message = "Vui lòng nhập đầy đủ thông tin." });
+
+            var tk = db.TaiKhoans.FirstOrDefault(x => x.TenDangNhap == username);
+            if (tk == null) 
+                return Json(new { success = false, message = "Sai tên đăng nhập hoặc mật khẩu." });
+
+            if (tk.TrangThai != true)
+                return Json(new { success = false, message = "Tài khoản của bạn đã bị khóa hoặc chưa được kích hoạt." });
+
+            bool isPasswordValid = false;
+            try
+            {
+                if (!string.IsNullOrEmpty(tk.MatKhau) && (tk.MatKhau.StartsWith("$2a$") || tk.MatKhau.StartsWith("$2b$")))
+                {
+                    isPasswordValid = BCrypt.Net.BCrypt.Verify(password, tk.MatKhau);
+                }
+                else
+                {
+                    isPasswordValid = (tk.MatKhau == password);
+                }
+            }
+            catch
+            {
+                isPasswordValid = (tk.MatKhau == password);
+            }
+
+            if (!isPasswordValid)
+                return Json(new { success = false, message = "Sai tên đăng nhập hoặc mật khẩu." });
+
             Session["TaiKhoan"] = tk;
             if (tk.VaiTro == "KhachHang")
             {
                 var maKH = db.KhachHangs.FirstOrDefault(k => k.MaTK == tk.MaTK)?.MaKH;
                 if (!string.IsNullOrEmpty(maKH)) Session["MaKH"] = maKH;
             }
+            else if (tk.VaiTro == "Shipper")
+            {
+                var maShipper = db.Shippers.FirstOrDefault(s => s.MaTK == tk.MaTK)?.MaShipper;
+                if (!string.IsNullOrEmpty(maShipper)) Session["MaShipper"] = maShipper;
+            }
+            else if (tk.VaiTro == "NhaHang")
+            {
+                var maNH = db.NhaHangs.FirstOrDefault(n => n.MaTK == tk.MaTK)?.MaNH;
+                if (!string.IsNullOrEmpty(maNH)) Session["MaNH"] = maNH;
+            }
+
             return Json(new { success = true });
         }
 
@@ -357,42 +360,93 @@ namespace ĐACN.Controllers
             return RedirectToAction("TrangChu");
         }
 
-        private List<NhaHangViewModel> LoadNhaHangData(double? userLat = null, double? userLng = null)
+        private async Task<List<NhaHangViewModel>> LoadNhaHangDataAsync(double? userLat = null, double? userLng = null)
         {
-
-            var nhaHangList = db.NhaHangs
-                .Include("TaiKhoan")
-                .Where(nh => nh.TaiKhoan != null && nh.TaiKhoan.TrangThai == true)
-                .ToList();
-            
-            // Lấy dữ liệu thống kê từ SQL thay vì memory nếu có thể, tạm thời lấy những group cần thiết
-            var danhGiaList = db.DanhGiaNhaHangs
-                                .GroupBy(dg => dg.MaNH)
-                                .Select(g => new { MaNH = g.Key, AvgRating = g.Average(d => d.SoSao) })
-                                .ToList();
-                                
-            var luotMuaDict = db.DonHangs
-                                .GroupBy(d => d.MaNH)
-                                .Select(g => new { MaNH = g.Key, LuotMua = g.Select(d => d.MaDon).Distinct().Count() })
-                                .ToList();
-                                
-            var maxLuotMua = luotMuaDict.Any() ? luotMuaDict.Max(l => l.LuotMua) : 1;
-
-            return nhaHangList.Select(x =>
+            string cacheKey = "Home_NhaHangData_Raw_v2";
+            var cachedData = await _cacheService.GetOrSetAsync(cacheKey, 5, async () =>
             {
-                // BỎ GỌI GeoCodeORS() ĐỒNG BỘ Ở ĐÂY ĐỂ TRÁNH TREO WEB.
-                // Việc cập nhật tọa độ nên làm ở thao tác của Admin/Nhà hàng khi họ đổi địa chỉ.
+                var nhaHangList = await db.NhaHangs
+                    .Include("TaiKhoan")
+                    .Where(nh => nh.TaiKhoan != null && nh.TaiKhoan.TrangThai == true)
+                    .ToListAsync();
                 
-                double rating = danhGiaList.Where(dg => dg.MaNH == x.MaNH).Select(dg => (double?)(dg.AvgRating)).FirstOrDefault() ?? 0;
-                int luotMua = luotMuaDict.Where(l => l.MaNH == x.MaNH).Select(l => l.LuotMua).FirstOrDefault();
-                double score = (rating * 0.6) + (((double)luotMua / maxLuotMua) * 4);
-                double distance = 999;
-                
-                if (userLat.HasValue && userLng.HasValue && x.Latitude.HasValue && x.Longitude.HasValue)
-                    distance = CalculateDistance(userLat.Value, userLng.Value, x.Latitude.Value, x.Longitude.Value);
+                var danhGiaList = await db.DanhGiaNhaHangs
+                                    .GroupBy(dg => dg.MaNH)
+                                    .Select(g => new { MaNH = g.Key, AvgRating = g.Average(d => d.SoSao) })
+                                    .ToListAsync();
+                                    
+                var luotMuaList = await db.DonHangs
+                                    .Where(d => d.TrangThai == "Hoàn thành" || d.TrangThai == "Hoàn tất" || d.TrangThai == "True")
+                                    .GroupBy(d => d.MaNH)
+                                    .Select(g => new { MaNH = g.Key, LuotMua = g.Select(d => d.MaDon).Distinct().Count() })
+                                    .ToListAsync();
+                                    
+                var danhGiaDict = danhGiaList.ToDictionary(dg => dg.MaNH, dg => dg.AvgRating ?? 0);
+                var luotMuaDict = luotMuaList.ToDictionary(l => l.MaNH, l => l.LuotMua);
+                var maxLuotMua = luotMuaDict.Values.Any() ? luotMuaDict.Values.Max() : 1;
+                if (maxLuotMua <= 0) maxLuotMua = 1;
 
-                return new NhaHangViewModel { MaNH = x.MaNH, TenNH = x.TenNH, DiaChi = x.DiaChi, TrangThai = x.TrangThai, HinhAnh = x.HinhAnh, Rating = Math.Round(rating, 1), TongLuotMua = luotMua, Score = score, KhoangCachKm = distance };
+                return nhaHangList.Select(x =>
+                {
+                    double rating = danhGiaDict.TryGetValue(x.MaNH, out var r) ? r : 0;
+                    int luotMua = luotMuaDict.TryGetValue(x.MaNH, out var lm) ? lm : 0;
+                    double score = (rating * 0.6) + (((double)luotMua / maxLuotMua) * 4);
+                    
+                    return new NhaHangViewModel { 
+                        MaNH = x.MaNH, 
+                        TenNH = x.TenNH, 
+                        DiaChi = x.DiaChi, 
+                        TrangThai = x.TrangThai, 
+                        HinhAnh = x.HinhAnh, 
+                        Rating = Math.Round(rating, 1), 
+                        TongLuotMua = luotMua, 
+                        Score = score,
+                        Latitude = x.Latitude,
+                        Longitude = x.Longitude
+                    };
+                }).ToList();
+            });
+
+            // Copy list từ cache để tính khoảng cách riêng cho mỗi User (nếu có tọa độ)
+            var result = cachedData.Select(x => new NhaHangViewModel
+            {
+                MaNH = x.MaNH,
+                TenNH = x.TenNH,
+                DiaChi = x.DiaChi,
+                TrangThai = x.TrangThai,
+                HinhAnh = x.HinhAnh,
+                Rating = x.Rating,
+                TongLuotMua = x.TongLuotMua,
+                Score = x.Score,
+                Latitude = x.Latitude,
+                Longitude = x.Longitude,
+                KhoangCachKm = 999
             }).ToList();
+
+            // Nếu user có tọa độ, tính theo tọa độ user. Nếu chưa có, lấy tọa độ trung tâm TP.HCM (10.7769, 106.7009)
+            double refLat = userLat ?? 10.7769;
+            double refLng = userLng ?? 106.7009;
+
+            foreach (var x in result)
+            {
+                double rLat = x.Latitude.HasValue && x.Latitude.Value > 0 ? x.Latitude.Value : 10.7769;
+                double rLng = x.Longitude.HasValue && x.Longitude.Value > 0 ? x.Longitude.Value : 106.7009;
+
+                // Trường hợp tọa độ ngoài miền Nam (vĩ độ > 15) nhưng địa chỉ ở TP.HCM
+                if (rLat > 15 && !string.IsNullOrEmpty(x.DiaChi) && (x.DiaChi.Contains("Hồ Chí Minh") || x.DiaChi.Contains("TP. HCM") || x.DiaChi.Contains("Quận") || x.DiaChi.Contains("Phường")))
+                {
+                    rLat = 10.7769; rLng = 106.7009;
+                }
+
+                double dist = CalculateDistance(refLat, refLng, rLat, rLng);
+                if (dist <= 0 || dist >= 999)
+                {
+                    dist = 2.5; // fallback khoảng cách hợp lý nếu lỗi tính toán
+                }
+                x.KhoangCachKm = dist;
+            }
+
+            return result;
         }
 
         private List<NhaHangViewModel> ApplySort(List<NhaHangViewModel> data, string sort)
@@ -404,6 +458,11 @@ namespace ĐACN.Controllers
                 case "bestseller": return data.OrderByDescending(x => x.TongLuotMua).ThenByDescending(x => x.Rating).ToList();
                 default: return data.OrderByDescending(x => x.Score).ToList();
             }
+        }
+
+        public ActionResult AntigravityDemo()
+        {
+            return Redirect("~/Scripts/antigravity/demo.html");
         }
     }
 }

@@ -1,3 +1,134 @@
+<style>
+    /* ===== QUAN LY SAN PHAM - PREMIUM ===== */
+
+    /* ===== MAIN CARD ===== */
+    .card.shadow-sm {
+        border-radius: 1.25rem !important;
+        border: 1px solid rgba(0,0,0,0.07) !important;
+        overflow: hidden;
+        box-shadow: 0 6px 24px rgba(0,0,0,0.07) !important;
+    }
+
+    /* ===== CARD HEADER ===== */
+    .card-header.bg-white {
+        background: #fff !important;
+        padding: 1.25rem 1.5rem !important;
+        border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+    }
+    .card-header h5 { font-weight: 700; color: #1a202c; font-size: 1.1rem; }
+
+    /* ===== SEARCH & FILTER ===== */
+    #txtSearch {
+        border-radius: 0.75rem;
+        border: 1.5px solid #e2e8f0;
+        padding: 0.6rem 1rem;
+        background: #f7fafc;
+        transition: all 0.2s;
+        width: 260px !important;
+    }
+    #txtSearch:focus {
+        border-color: #ff5a2b; background: #fff;
+        box-shadow: 0 0 0 3px rgba(255,90,43,0.12);
+        outline: none;
+    }
+    #statusFilter {
+        border-radius: 0.75rem; border: 1.5px solid #e2e8f0;
+        padding: 0.6rem 1rem; background: #f7fafc;
+        width: 190px !important; transition: all 0.2s;
+    }
+    #statusFilter:focus {
+        border-color: #ff5a2b; background: #fff;
+        box-shadow: 0 0 0 3px rgba(255,90,43,0.12);
+        outline: none;
+    }
+
+    /* ===== ADD BUTTON ===== */
+    .btn-success {
+        background: linear-gradient(135deg, #ff5a2b, #ff9f1c) !important;
+        border: none !important; border-radius: 0.75rem !important;
+        font-weight: 700; padding: 0.6rem 1.25rem;
+        box-shadow: 0 4px 12px rgba(255,90,43,0.25);
+        color: #fff !important;
+        transition: all 0.2s;
+    }
+    .btn-success:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(255,90,43,0.35) !important; }
+
+    /* ===== TABLE ===== */
+    .table { margin-bottom: 0; }
+    .table thead th {
+        background: #f8fafc !important;
+        color: #64748b;
+        font-weight: 700;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        border-bottom: 2px solid #e2e8f0 !important;
+        padding: 1rem 1rem;
+    }
+    .table thead th.ps-4 { padding-left: 1.5rem !important; }
+    .table tbody tr {
+        transition: background 0.15s ease;
+        border-bottom: 1px solid #f0f2f5 !important;
+    }
+    .table tbody tr:hover { background: #fffaf8 !important; }
+    .table td { padding: 0.85rem 1rem; vertical-align: middle; border-color: #f0f2f5 !important; }
+
+    /* ===== PRODUCT IMG ===== */
+    .table td img.rounded-3 {
+        border-radius: 0.75rem !important;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        border: 2px solid #f0f2f5;
+    }
+
+    /* ===== PRODUCT NAME ===== */
+    .fw-bold.text-dark { color: #1a202c !important; }
+
+    /* ===== CATEGORY BADGE ===== */
+    .badge.bg-light.text-secondary.border {
+        background: #f1f5f9 !important;
+        color: #64748b !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 8px !important;
+        font-weight: 600; font-size: 0.78rem;
+        padding: 4px 10px;
+    }
+
+    /* ===== PRICE ===== */
+    .text-primary.fw-bold { color: #ff5a2b !important; }
+
+    /* ===== TOGGLE SWITCH ===== */
+    .form-check-input:checked { background-color: #ff5a2b; border-color: #ff5a2b; }
+    .form-check-input:focus { box-shadow: 0 0 0 3px rgba(255,90,43,0.15); }
+    .form-check-label { font-weight: 600; font-size: 0.85rem; color: #4a5568; }
+
+    /* ===== ACTION BUTTONS ===== */
+    .btn-action {
+        border-radius: 0.6rem !important;
+        width: 34px; height: 34px;
+        display: inline-flex; align-items: center; justify-content: center;
+        padding: 0; font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+    .btn-outline-primary {
+        border-color: #e2e8f0 !important; color: #3b82f6 !important;
+    }
+    .btn-outline-primary:hover {
+        background: #3b82f6 !important; border-color: #3b82f6 !important;
+        color: #fff !important;
+        box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+    }
+    .btn-outline-danger {
+        border-color: #fee2e2 !important; color: #ef4444 !important;
+    }
+    .btn-outline-danger:hover {
+        background: #ef4444 !important; border-color: #ef4444 !important;
+        color: #fff !important;
+        box-shadow: 0 4px 12px rgba(239,68,68,0.3);
+    }
+
+    /* ===== EMPTY STATE ===== */
+    .text-center.text-muted.py-4 { font-size: 0.95rem; }
+</style>
 @model IEnumerable<ĐACN.MonAn>
 
 @{
@@ -45,7 +176,8 @@
                         <tr>
                             <td class="ps-4 text-muted fw-bold">@(i++)</td>
                             <td>
-                                <img src="@(string.IsNullOrEmpty(item.HinhAnh) ? Url.Content("~/images/monan/no-image.png") : (item.HinhAnh.StartsWith("http") ? item.HinhAnh : Url.Content("~/images/monan/" + item.HinhAnh)))"
+                                <img src="@(string.IsNullOrEmpty(item.HinhAnh) ? Url.Content("~/images/logo.jpg") : (item.HinhAnh.StartsWith("http") ? item.HinhAnh : Url.Content("~/images/monan/" + item.HinhAnh)))"
+                                     onerror="this.onerror=null; this.src='@Url.Content("~/images/logo.jpg")';"
                                      class="rounded-3 shadow-sm"
                                      style="width: 60px; height: 60px; object-fit: cover; transition: transform 0.3s;"
                                      onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'" />
@@ -66,6 +198,9 @@
                             </td>
                             <td class="text-center pe-4" style="white-space: nowrap;">
                                 <div class="d-flex justify-content-center gap-2">
+                                    <a href="@Url.Action("ToppingMenu","NhaHang", new { id = item.MaMon })" class="btn btn-outline-info btn-sm btn-action" title="Cấu hình tùy chọn">
+                                        <i class="bi bi-ui-checks-grid"></i>
+                                    </a>
                                     <a href="@Url.Action("ChinhSuaSanPham","NhaHang", new { id = item.MaMon })" class="btn btn-outline-primary btn-sm btn-action" title="Chỉnh sửa">
                                         <i class="bi bi-pencil-square"></i>
                                     </a>

@@ -20,192 +20,233 @@
     double initKhoangCach = ViewBag.KhoangCach != null ? Convert.ToDouble(ViewBag.KhoangCach) : 0;
 }
 
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <style>
+    /* ===== CART PAGE - WHITE CLEAN THEME ===== */
     body {
-        background-color: #f8f9fa;
+        background: #f8f9fa;
+        min-height: 100vh;
+        font-family: 'Inter', sans-serif;
     }
 
-    .cart-container {
-        padding-top: 40px;
-        padding-bottom: 60px;
-    }
+    .cart-container { padding-top: 40px; padding-bottom: 80px; }
 
-    /* --- ITEM CARDS --- */
-    .cart-item-card {
-        background: #fff;
-        border-radius: 1.25rem;
-        padding: 1.25rem;
-        margin-bottom: 1.25rem;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-        border: 1px solid rgba(0,0,0,0.05);
-        transition: all 0.3s ease;
-        position: relative;
+    /* Hide orbs on cart page */
+    .cart-orbs-bg { display: none; }
+
+    /* ===== SHOP GROUP CARD ===== */
+    .shop-group.card {
+        background: #fff !important;
+        border: 1px solid rgba(0,0,0,0.07) !important;
+        border-radius: 1.25rem !important;
+        box-shadow: 0 4px 18px rgba(0,0,0,0.06);
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
         overflow: hidden;
     }
-    
-    .cart-item-card:hover {
+    .shop-group.card:hover {
         transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.09);
     }
+    .shop-group .card-header {
+        background: #fff !important;
+        border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+    }
+    .shop-group .card-header h5 { color: #1a202c !important; font-weight: 700; }
+    .shop-group .card-header .fa-store-alt { color: #ff5a2b !important; }
+
+    /* ===== CART ITEM ROWS ===== */
+    .cart-item {
+        background: #fff;
+        border-bottom: 1px solid #f0f2f5 !important;
+        transition: background 0.15s ease;
+    }
+    .cart-item:hover { background: #fffaf8 !important; }
+    .cart-item h6 { color: #1a202c !important; font-weight: 600; }
+    .cart-item .text-primary { color: #ff5a2b !important; }
+    .cart-item .fw-bold.fs-6.text-dark { color: #2d3748 !important; }
 
     .cart-item-img {
-        width: 100px;
-        height: 100px;
         object-fit: cover;
-        border-radius: 1rem;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    }
-    
-    .btn-update-qty {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #f8f9fa;
-        color: #495057;
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s;
-    }
-    
-    .btn-update-qty:hover {
-        background: #0d6efd;
-        color: white;
-        border-color: #0d6efd;
-    }
-    
-    .qty-input {
-        width: 40px;
-        text-align: center;
-        font-weight: bold;
-        background: transparent;
-        border: none;
-        outline: none;
-    }
-    
-    .btn-remove-item {
-        background: #fff0f0;
-        color: #dc3545;
-        border: none;
-        border-radius: 0.5rem;
-        padding: 0.4rem 0.8rem;
-        font-size: 0.85rem;
-        font-weight: 600;
-        transition: all 0.2s;
-    }
-    
-    .btn-remove-item:hover {
-        background: #dc3545;
-        color: white;
+        border-radius: 0.85rem;
+        box-shadow: 0 3px 12px rgba(0,0,0,0.1);
     }
 
-    /* --- CHECKOUT SIDEBAR --- */
+    /* ===== QTY BUTTONS ===== */
+    .btn-update-qty {
+        width: 34px; height: 34px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        background: #f7fafc; color: #4a5568;
+        border: 1px solid #e2e8f0; transition: all 0.2s;
+    }
+    .btn-update-qty:hover {
+        background: #ff5a2b; color: #fff; border-color: #ff5a2b;
+        box-shadow: 0 4px 12px rgba(255,90,43,0.3);
+    }
+    .qty-input {
+        width: 40px; text-align: center; font-weight: 700;
+        background: #f7fafc !important; border: 1px solid #e2e8f0 !important;
+        border-radius: 8px; color: #2d3748 !important; outline: none;
+    }
+
+    /* ===== REMOVE BUTTON ===== */
+    .btn-remove-item {
+        background: #fff5f5; color: #e53e3e;
+        border: 1px solid #fed7d7; border-radius: 0.5rem;
+        padding: 0.4rem 0.75rem; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;
+    }
+    .btn-remove-item:hover {
+        background: #e53e3e; color: #fff; border-color: #e53e3e;
+        box-shadow: 0 4px 12px rgba(229,62,62,0.25);
+    }
+
+    /* ===== CHECKOUT SIDEBAR ===== */
     .checkout-sidebar {
         background: #fff;
-        border-radius: 1.5rem;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-        border: none;
+        border-radius: 1.25rem;
+        border: 1px solid rgba(0,0,0,0.07);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.08);
         overflow: hidden;
-        position: sticky;
-        top: 20px;
+        position: sticky; top: 20px;
     }
 
     .payment-header {
-        background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
-        color: white;
-        padding: 1.5rem;
-        font-weight: 700;
-        font-size: 1.25rem;
-        display: flex;
-        align-items: center;
+        background: linear-gradient(135deg, #ff5a2b 0%, #ff9f1c 100%);
+        color: #fff; padding: 1.25rem 1.5rem; font-weight: 700; font-size: 1.1rem;
+        display: flex; align-items: center;
     }
 
+    /* ===== FORM CONTROLS ===== */
     .form-control, .form-select {
         border-radius: 0.75rem;
-        border: 2px solid #e2e8f0;
-        padding: 0.75rem 1rem;
-        background-color: #f8f9fa;
-        transition: all 0.3s ease;
+        border: 1.5px solid #e2e8f0 !important;
+        padding: 0.7rem 1rem;
+        background: #f7fafc !important;
+        color: #2d3748 !important;
+        transition: all 0.25s ease;
     }
-    
+    .form-control::placeholder { color: #a0aec0; }
     .form-control:focus, .form-select:focus {
-        background-color: #fff;
-        border-color: #0d6efd;
-        box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
+        background: #fff !important;
+        border-color: #ff5a2b !important;
+        box-shadow: 0 0 0 3px rgba(255,90,43,0.12) !important;
+        color: #2d3748 !important;
     }
-    
+    .form-select option { background: #fff; color: #2d3748; }
+
     .address-display-box {
-        background: #f8f9fa;
-        border: 2px dashed #cbd5e0;
-        border-radius: 1rem;
-        padding: 1.25rem;
-        transition: all 0.3s ease;
+        background: #f7fafc; border: 1.5px dashed #cbd5e0 !important;
+        border-radius: 1rem; padding: 1.25rem; transition: all 0.25s ease;
     }
-    
-    .address-display-box:hover {
-        border-color: #0d6efd;
-        background: #fff;
-    }
+    .address-display-box:hover { border-color: #ff5a2b !important; background: #fff5f0; }
 
+    #lblCurrentAddress { color: #2d3748 !important; }
+    .text-dark { color: #2d3748 !important; }
+    .fw-bold.text-dark { color: #1a202c !important; }
+    .text-secondary { color: #718096 !important; }
+    .text-muted { color: #a0aec0 !important; }
+
+    /* ===== PAYMENT METHOD CARDS ===== */
     .payment-method-card {
-        border: 2px solid #e2e8f0;
-        border-radius: 1rem;
-        padding: 1rem;
-        margin-bottom: 0.75rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
+        background: #f7fafc; border: 1.5px solid #e2e8f0 !important;
+        border-radius: 0.9rem; padding: 0.85rem 1rem; margin-bottom: 0.7rem;
+        cursor: pointer; transition: all 0.2s ease;
     }
-    
-    .payment-method-card:hover {
-        border-color: #cbd5e0;
-        background: #f8f9fa;
-    }
-    
-    .payment-method-card.active {
-        border-color: #0d6efd;
-        background: rgba(13, 110, 253, 0.05);
-    }
-    
+    .payment-method-card:hover { background: #fff; border-color: #c3d0e0 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    .payment-method-card.active { background: #fff5f0 !important; border-color: #ff5a2b !important; box-shadow: 0 0 0 3px rgba(255,90,43,0.1); }
+    .payment-method-card label { color: #2d3748 !important; }
+
+    /* ===== TOTAL SECTION ===== */
     .total-section {
-        background: #f8f9fa;
-        border-radius: 1rem;
-        padding: 1.5rem;
-        margin-top: 1.5rem;
+        background: #f7fafc; border-radius: 1rem; padding: 1.5rem; margin-top: 1.5rem;
+        border: 1px solid #edf2f7;
     }
+    .total-section .text-secondary { color: #718096 !important; }
+    .total-section hr { border-color: #e2e8f0 !important; margin: 1rem 0; }
+    .final-price { color: #ff5a2b; font-size: 1.75rem; font-weight: 800; }
+    .text-success { color: #38a169 !important; }
 
-    .final-price {
-        color: #dc3545;
-        font-size: 1.75rem;
-        font-weight: 800;
+    /* ===== BORDER BEAM CHECKOUT BUTTON ===== */
+    .btn-checkout-wrapper {
+        position: relative; border-radius: 1.05rem; margin-top: 1.5rem; padding: 2px;
+        background: conic-gradient(from 0deg, #ff5a2b, #ff9f1c, #fff, #ff5a2b);
+        animation: beamRotate 2.5s linear infinite;
     }
-
+    @@keyframes beamRotate { to { transform: rotate(360deg); } }
+    .btn-checkout-wrapper-inner { border-radius: 0.9rem; overflow: hidden; }
     .btn-checkout {
-        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-        color: white;
-        padding: 1rem;
-        font-weight: 700;
-        font-size: 1.2rem;
-        border-radius: 1rem;
-        width: 100%;
-        margin-top: 1.5rem;
-        border: none;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        background: linear-gradient(135deg, #ff5a2b 0%, #ff9f1c 100%);
+        color: #fff; padding: 0.95rem 1.5rem; font-weight: 700; font-size: 1.05rem;
+        border-radius: 0.85rem; width: 100%; border: none; transition: all 0.3s ease;
+        box-shadow: 0 6px 18px rgba(255,90,43,0.3); letter-spacing: 0.4px;
     }
+    .btn-checkout:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(255,90,43,0.4); }
+    .btn-checkout:disabled { background: #e2e8f0 !important; color: #a0aec0 !important; box-shadow: none; cursor: not-allowed; }
+    .btn-checkout-wrapper.btn-disabled { animation: none; background: #e2e8f0; }
 
-    .btn-checkout:hover:not(:disabled) {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+    /* ===== VOUCHER ROW ===== */
+    .voucher-trigger-row {
+        background: #fff5f0 !important; border: 1px solid rgba(255,90,43,0.2) !important;
+        border-radius: 0.85rem; transition: all 0.2s; cursor: pointer;
     }
+    .voucher-trigger-row:hover { background: #ffe8df !important; border-color: #ff5a2b !important; }
 
-    .btn-checkout:disabled {
-        background: #e2e8f0;
-        color: #a0aec0;
-        box-shadow: none;
-        cursor: not-allowed;
+    /* ===== EMPTY CART ===== */
+    .empty-cart-box {
+        background: #fff; border-radius: 1.5rem; padding: 4rem 2rem; text-align: center;
+        box-shadow: 0 6px 25px rgba(0,0,0,0.07); border: 1px solid rgba(0,0,0,0.06);
     }
+    .empty-cart-box h4 { color: #2d3748; }
+    .empty-cart-box p { color: #718096; }
+
+    /* ===== LABELS & ICONS ===== */
+    label.fw-bold { color: #2d3748 !important; }
+    .fa-map-marked-alt, .fa-phone-alt, .fa-wallet, .fa-ticket-alt,
+    .fa-shopping-basket, .fa-store-alt { color: #ff5a2b !important; }
+    h4.fw-bold { color: #1a202c !important; }
+    .fa-receipt { color: #fff !important; }
+
+    /* ===== ALERTS ===== */
+    .alert-info { background: #ebf8ff !important; border: 1px solid #bee3f8 !important; color: #2b6cb0 !important; }
+
+    /* ===== CHECKBOXES ===== */
+    .form-check-input:checked { background-color: #ff5a2b; border-color: #ff5a2b; }
+    .form-check-label { color: #4a5568 !important; }
+
+    /* ===== BUTTONS ===== */
+    .btn-light { background: #f7fafc !important; border: 1px solid #e2e8f0 !important; color: #4a5568 !important; }
+    .btn-light:hover { background: #edf2f7 !important; }
+    .btn-primary { background: linear-gradient(135deg, #ff5a2b, #ff9f1c) !important; border: none !important; color: #fff !important; }
+    .btn-primary:hover { box-shadow: 0 6px 18px rgba(255,90,43,0.3) !important; }
+
+    /* ===== MODALS ===== */
+    .modal-content { background: #fff !important; border: 1px solid rgba(0,0,0,0.1) !important; color: #2d3748; box-shadow: 0 20px 60px rgba(0,0,0,0.12) !important; }
+    .modal-header, .modal-footer { background: #f7fafc !important; border-color: #e2e8f0 !important; }
+    .modal-title { color: #1a202c !important; }
+    .voucher-card { background: #fff !important; border: 1px solid #e2e8f0 !important; border-radius: 0.75rem; transition: all 0.2s; }
+    .voucher-card.selected { border-color: #ff5a2b !important; background: #fff5f0 !important; }
+    .voucher-radio:checked { background-color: #ff5a2b; border-color: #ff5a2b; }
+    .voucher-left, .voucher-right { mask-image: radial-gradient(circle at 0px 50%, transparent 4px, #000 5px); -webkit-mask-image: radial-gradient(circle at 0px 50%, transparent 4px, #000 5px); }
+    .voucher-left { mask-position: right; }
+
+    /* ===== MISC ===== */
+    .bg-light.text-secondary.small { background: #f7fafc !important; color: #718096 !important; }
+    .btn-link.text-primary { color: #ff5a2b !important; }
+    .btn-outline-secondary { color: #718096 !important; border-color: #e2e8f0 !important; }
+    .btn-outline-secondary:hover { background: #f7fafc !important; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #f0f2f5; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,90,43,0.3); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,90,43,0.55); }
 </style>
+
+<!-- Floating Orbs Background -->
+<div class="cart-orbs-bg">
+    <div class="cart-orb cart-orb-1"></div>
+    <div class="cart-orb cart-orb-2"></div>
+    <div class="cart-orb cart-orb-3"></div>
+    <div class="cart-orb cart-orb-4"></div>
+</div>
 
 <div class="cart-container container">
     @Html.AntiForgeryToken()
@@ -219,10 +260,10 @@
 
     @if (Model == null || !Model.Any())
     {
-        <div class="text-center py-5 bg-white rounded-3 shadow-sm border-0 mt-4">
-            <img src="https://cdn-icons-png.flaticon.com/512/2038/2038854.png" style="width:120px; opacity:0.5" class="mb-4" />
-            <h4 class="text-dark fw-bold mb-3">Giỏ hàng của bạn đang trống</h4>
-            <p class="text-muted mb-4">Hãy thêm vài món ăn ngon vào giỏ nhé!</p>
+        <div class="empty-cart-box mt-4">
+            <img src="https://cdn-icons-png.flaticon.com/512/2038/2038854.png" style="width:110px; opacity:0.7; filter: drop-shadow(0 0 20px rgba(255,107,53,0.4));" class="mb-4" />
+            <h4 class="fw-bold mb-3">Giỏ hàng của bạn đang trống</h4>
+            <p class="mb-4">Hãy thêm vài món ăn ngon vào giỏ nhé!</p>
             <a href="@Url.Action("TrangChu", "Home")" class="btn btn-primary px-4 py-2 fw-bold" style="border-radius: 0.75rem;"><i class="fas fa-arrow-left me-2"></i>Tiếp tục tìm món</a>
         </div>
     }
@@ -273,17 +314,143 @@
     </div>
 </div>
 
+<!-- Modal Chọn Voucher Shopee Style -->
+<div class="modal fade" id="voucherModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius: 12px; background: #f5f5f5;">
+            <div class="modal-header bg-white align-items-center py-2" style="border-bottom: 1px solid #eee;">
+                <h5 class="modal-title fw-bold text-dark w-100 text-center" style="font-size: 1.1rem;">Chọn TapFood Voucher</h5>
+                <button type="button" class="btn-close position-absolute" style="right: 15px;" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body p-0">
+                <!-- Mã nhập tay -->
+                <div class="bg-white p-3 mb-2 d-flex align-items-center shadow-sm">
+                    <span class="text-secondary text-nowrap me-2 small fw-bold">Mã Voucher</span>
+                    <div class="input-group">
+                        <input type="text" id="txtManualVoucherCode" class="form-control bg-light" placeholder="Nhập mã TapFood Voucher" style="border: 1px solid #ddd; border-radius: 2px;">
+                        <button type="button" class="btn text-secondary fw-bold ms-2 px-3" id="btnManualVoucherApply" style="background: #e0e0e0; border-radius: 2px; font-size: 0.9rem;" disabled>ÁP DỤNG</button>
+                    </div>
+                </div>
+                
+                <div class="px-3 py-2">
+                    <!-- Freeship Vouchers -->
+                    <div class="mb-3">
+                        <h6 class="text-dark fw-bold mb-1 small">Mã Miễn Phí Vận Chuyển</h6>
+                        <span class="text-secondary d-block mb-2" style="font-size: 0.8rem;">Có thể chọn 1 Voucher</span>
+                        
+                        <div id="freeshipVoucherList">
+                            @if(ViewBag.DanhSachVoucher != null) {
+                                foreach(var v in (List<ĐACN.Models.Voucher>)ViewBag.DanhSachVoucher) {
+                                    if(v.LoaiVoucher == "Ship") {
+                                        <div class="voucher-card d-flex mb-2 bg-white rounded shadow-sm position-relative overflow-hidden" data-code="@v.MaVoucher" data-type="Ship" style="cursor: pointer;">
+                                            <div class="voucher-left bg-info d-flex flex-column justify-content-center align-items-center text-white p-2" style="width: 100px; border-right: 1px dashed #ddd; background: #00bfa5 !important;">
+                                                <i class="fas fa-truck fs-3 mb-1"></i>
+                                                <span class="fw-bold small text-center" style="font-size:0.75rem;">Free Ship</span>
+                                            </div>
+                                            <div class="voucher-right flex-grow-1 p-2 d-flex align-items-center justify-content-between">
+                                                <div>
+                                                    <div class="fw-bold text-dark" style="font-size: 0.9rem;">
+                                                        @(v.PhanTramGiam == 100 ? "Giảm " + v.GiamToiDa.ToString("#,0") + "đ" : "Giảm " + v.PhanTramGiam + "% tối đa " + v.GiamToiDa.ToString("#,0") + "đ")
+                                                    </div>
+                                                    <div class="text-secondary" style="font-size: 0.75rem;">Đơn Tối Thiểu @(v.DieuKienToiThieu.ToString("#,0"))đ</div>
+                                                    <div class="text-danger mt-1 fw-bold" style="font-size: 0.7rem; border: 1px solid #ffb6c1; display:inline-block; padding: 2px 4px; border-radius: 2px; color: #ee4d2d !important;">Số lượng có hạn</div>
+                                                </div>
+                                                <div class="form-check ms-2">
+                                                    <input class="form-check-input voucher-radio voucher-radio-ship" type="radio" name="voucherShip" id="vShip_@v.MaVoucher" value="@v.MaVoucher" @(ViewBag.MaVoucherShip == v.MaVoucher ? "checked" : "") style="width: 1.2em; height: 1.2em;">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Discount Vouchers -->
+                    <div class="mb-3">
+                        <h6 class="text-dark fw-bold mb-1 small">Mã Giảm Giá Món Ăn</h6>
+                        <span class="text-secondary d-block mb-2" style="font-size: 0.8rem;">Có thể chọn 1 Voucher</span>
+                        
+                        <div id="discountVoucherList">
+                            @if(ViewBag.DanhSachVoucher != null) {
+                                foreach(var v in (List<ĐACN.Models.Voucher>)ViewBag.DanhSachVoucher) {
+                                    if(v.LoaiVoucher == "Mon") {
+                                        <div class="voucher-card d-flex mb-2 bg-white rounded shadow-sm position-relative overflow-hidden" data-code="@v.MaVoucher" data-type="Mon" style="cursor: pointer;">
+                                            <div class="voucher-left d-flex flex-column justify-content-center align-items-center text-white p-2" style="width: 100px; border-right: 1px dashed #ddd; background: #ee4d2d !important;">
+                                                <h5 class="fw-bold m-0 text-center" style="line-height: 1.2;">Tap<br>Food</h5>
+                                            </div>
+                                            <div class="voucher-right flex-grow-1 p-2 d-flex align-items-center justify-content-between">
+                                                <div>
+                                                    <div class="fw-bold text-dark" style="font-size: 0.9rem;">
+                                                        @(v.PhanTramGiam == 100 ? "Giảm " + v.GiamToiDa.ToString("#,0") + "đ" : "Giảm " + v.PhanTramGiam + "% tối đa " + v.GiamToiDa.ToString("#,0") + "đ")
+                                                    </div>
+                                                    <div class="text-secondary" style="font-size: 0.75rem;">Đơn Tối Thiểu @(v.DieuKienToiThieu.ToString("#,0"))đ</div>
+                                                    <div class="text-danger mt-1 fw-bold" style="font-size: 0.7rem; color: #ee4d2d !important;">Sắp hết hạn</div>
+                                                </div>
+                                                <div class="form-check ms-2">
+                                                    <input class="form-check-input voucher-radio voucher-radio-mon" type="radio" name="voucherMon" id="vMon_@v.MaVoucher" value="@v.MaVoucher" @(ViewBag.MaVoucherMon == v.MaVoucher ? "checked" : "") style="width: 1.2em; height: 1.2em;">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer bg-white border-0 shadow-lg d-flex justify-content-between align-items-center py-2 px-3" style="position: sticky; bottom: 0;">
+                <div class="small">
+                    <span class="text-dark">Đã chọn <span id="voucherSelectionCount" class="fw-bold" style="color: #ee4d2d;">0</span> Voucher</span>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-secondary px-3 bg-white fw-bold" data-bs-dismiss="modal" style="border-radius: 2px; font-size: 0.9rem;">TRỞ LẠI</button>
+                    <button type="button" class="btn btn-primary px-4 fw-bold text-white" id="btnConfirmVouchers" style="border-radius: 2px; background: #ee4d2d; border: none; font-size: 0.9rem;">ĐỒNG Ý</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .voucher-card {
+        border: 1px solid #ddd;
+        transition: all 0.2s;
+    }
+    .voucher-card.selected {
+        border-color: #ee4d2d;
+        background-color: #fff9f8 !important;
+    }
+    .voucher-radio:checked {
+        background-color: #ee4d2d;
+        border-color: #ee4d2d;
+    }
+    .voucher-left, .voucher-right {
+        /* Pseudo-tooth border effect */
+        mask-image: radial-gradient(circle at 0px 50%, transparent 4px, #000 5px);
+        -webkit-mask-image: radial-gradient(circle at 0px 50%, transparent 4px, #000 5px);
+    }
+    .voucher-left {
+        mask-position: right;
+    }
+</style>
+
+
 @section scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
     const allItems = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(Model ?? new List<CartItem>()));
     const antiForgeryToken = $('input[name="__RequestVerificationToken"]').val();
     const initServiceFee = @initPhiDichVu;
-    const defaultPhone = "@Html.Raw(sdtMacDinh)";
+    const defaultPhone = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(sdtMacDinh ?? ""));
 
-    const defaultAddressStr = "@Html.Raw(diaChiMacDinh)";
+    const defaultAddressStr = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(diaChiMacDinh ?? ""));
     const defaultShipFee = parseFloat("@initPhiShip".replace(',', '.'));
     const defaultDistance = parseFloat("@initKhoangCach".replace(',', '.'));
+    const initGiamGiaMon = parseFloat("@(ViewBag.GiamGiaMon != null ? ViewBag.GiamGiaMon : 0)");
+    const initGiamGiaShip = parseFloat("@(ViewBag.GiamGiaShip != null ? ViewBag.GiamGiaShip : 0)");
 
     let currentMaNH = null; // Sẽ được cập nhật khi user tick chọn món
     let selectedMaGHs = []; // Mảng chứa ID các món được tick
@@ -291,6 +458,8 @@
     let currentAddress = defaultAddressStr;
     let currentShipFee = 0;
     let currentDistance = 0;
+    let currentDiscountMon = initGiamGiaMon;
+    let currentDiscountShip = initGiamGiaShip;
 
     $(document).ready(function() {
         renderCartUI();
@@ -471,6 +640,37 @@
                             </label>
                         </div>
                     </div>
+                    <div class="payment-method-card">
+                        <div class="form-check d-flex align-items-center m-0">
+                            <input class="form-check-input flex-shrink-0" type="radio" name="phuongThucTT" id="ttVNPay" value="VNPay">
+                            <label class="form-check-label w-100 ms-2 fw-bold text-dark" style="cursor: pointer;" for="ttVNPay">
+                                <i class="fas fa-credit-card text-primary me-2"></i>Thanh toán qua VNPay
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAPFOOD VOUCHER -->
+                <div class="mb-4 bg-white p-3 rounded shadow-sm border border-light cursor-pointer" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#voucherModal">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-ticket-alt fs-4 me-2" style="color: #ff5a00;"></i>
+                            <span class="fw-bold text-dark fs-6">TapFood Voucher</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span class="text-primary me-2" id="txtAppliedVoucherStatus" style="font-size: 0.9rem;">
+                                @if(!string.IsNullOrEmpty((string)ViewBag.MaVoucherMon) || !string.IsNullOrEmpty((string)ViewBag.MaVoucherShip))
+                                {
+                                    <span>Đã chọn mã</span>
+                                }
+                                else
+                                {
+                                    <span>Chọn hoặc nhập mã</span>
+                                }
+                            </span>
+                            <i class="fas fa-chevron-right text-muted small"></i>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="total-section shadow-sm">
@@ -482,9 +682,17 @@
                         <span class="text-secondary fw-bold">Phí giao hàng:</span>
                         <span class="fw-bold text-dark" id="lblPhiShip">${shipDisplay}</span>
                     </div>
-                    <div class="d-flex justify-content-between mb-3">
+                    <div class="d-flex justify-content-between mb-2">
                         <span class="text-secondary fw-bold">Phí dịch vụ ứng dụng:</span>
                         <span class="fw-bold text-dark">@initPhiDichVu.ToString("#,0") đ</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2" id="discountRowMon" style="@(ViewBag.GiamGiaMon != null && (decimal)ViewBag.GiamGiaMon > 0 ? "" : "display:none;")">
+                        <span class="text-success fw-bold"><i class="fas fa-tags me-1"></i>Giảm giá món:</span>
+                        <span class="fw-bold text-success" id="lblDiscountMon">-@((ViewBag.GiamGiaMon != null ? (decimal)ViewBag.GiamGiaMon : 0).ToString("#,0")) đ</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3" id="discountRowShip" style="@(ViewBag.GiamGiaShip != null && (decimal)ViewBag.GiamGiaShip > 0 ? "" : "display:none;")">
+                        <span class="text-success fw-bold"><i class="fas fa-shipping-fast me-1"></i>Giảm phí ship:</span>
+                        <span class="fw-bold text-success" id="lblDiscountShip">-@((ViewBag.GiamGiaShip != null ? (decimal)ViewBag.GiamGiaShip : 0).ToString("#,0")) đ</span>
                     </div>
                     
                     <hr style="border-color: #cbd5e0; margin: 15px 0;">
@@ -494,9 +702,13 @@
                         <span class="final-price" id="lblTongCong">0 đ</span>
                     </div>
 
-                    <button type="submit" class="btn btn-checkout" id="btnSubmitOrder" ${btnDisabled}>
-                        <i class="fas fa-paper-plane me-2"></i> ĐẶT HÀNG NGAY
-                    </button>
+                    <div class="btn-checkout-wrapper ${btnDisabled ? 'btn-disabled' : ''}">
+                        <div class="btn-checkout-wrapper-inner">
+                            <button type="submit" class="btn btn-checkout" id="btnSubmitOrder" ${btnDisabled}>
+                                <i class="fas fa-paper-plane me-2"></i> ĐẶT HÀNG NGAY
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>`;
@@ -554,10 +766,15 @@
             $("#btnSaveAddress").html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
             let luuDiaChi = $("#chkLuuDiaChi").is(":checked");
 
+            let targetMaNH = currentMaNH;
+            if (!targetMaNH) {
+                targetMaNH = $(".check-shop").first().data("manh") || $(".check-item").first().data("manh");
+            }
+
             $.ajax({
                 url: '/KhachHang/GetDistanceNhaHangToKhachHang',
                 type: 'GET',
-                data: { maNH: currentMaNH, diaChi: street, phuongXa: wardText, quanHuyen: districtText, tinhTP: cityText, luuDiaChi: luuDiaChi },
+                data: { maNH: targetMaNH, diaChi: street, phuongXa: wardText, quanHuyen: districtText, tinhTP: cityText, luuDiaChi: luuDiaChi },
                 success: function (res) {
                     $("#btnSaveAddress").html('Xác nhận').prop('disabled', false);
                     if (res.success && res.data) {
@@ -631,13 +848,168 @@
         let selectedItems = allItems.filter(x => selectedMaGHs.includes(x.MaGH));
         selectedItems.forEach(x => subTotal += x.ThanhTien);
         
-        let total = subTotal > 0 ? (subTotal + initServiceFee + currentShipFee) : 0;
+        let total = subTotal > 0 ? (subTotal + initServiceFee + currentShipFee - currentDiscountMon - currentDiscountShip) : 0;
+        if(total < 0) total = 0;
+
         $("#lblTongCong").text(total.toLocaleString() + " đ");
         
         if (subTotal === 0) {
             $("#btnSubmitOrder").prop("disabled", true);
         }
     }
+
+    // === VOUCHER MODAL LOGIC ===
+    let selectedVoucherMon = "@(ViewBag.MaVoucherMon ?? "")";
+    let selectedVoucherShip = "@(ViewBag.MaVoucherShip ?? "")";
+
+    function updateVoucherSelectionCount() {
+        let count = 0;
+        if(selectedVoucherMon) count++;
+        if(selectedVoucherShip) count++;
+        $("#voucherSelectionCount").text(count);
+        
+        if (count > 0) {
+            $("#txtAppliedVoucherStatus").html("<span>Đã chọn mã</span>");
+        } else {
+            $("#txtAppliedVoucherStatus").html("<span>Chọn hoặc nhập mã</span>");
+        }
+    }
+    
+    function applyVoucherAjax(code, type) {
+        return new Promise((resolve) => {
+            $.ajax({
+                url: '/KhachHang/ApDungVoucher',
+                type: 'POST',
+                data: { maVoucher: code, loaiYeuCau: type, phiShip: currentShipFee, __RequestVerificationToken: antiForgeryToken },
+                success: function (res) {
+                    if (res.success) {
+                        if (type === "Mon") {
+                            currentDiscountMon = res.discount;
+                            $("#discountRowMon").show();
+                            $("#lblDiscountMon").text("-" + currentDiscountMon.toLocaleString() + " đ");
+                        } else {
+                            currentDiscountShip = res.discount;
+                            $("#discountRowShip").show();
+                            $("#lblDiscountShip").text("-" + currentDiscountShip.toLocaleString() + " đ");
+                        }
+                    } else {
+                        if (type === "Mon") {
+                            currentDiscountMon = 0;
+                            $("#discountRowMon").hide();
+                        } else {
+                            currentDiscountShip = 0;
+                            $("#discountRowShip").hide();
+                        }
+                    }
+                    resolve(res);
+                },
+                error: function() {
+                    resolve({ success: false, message: "Lỗi kết nối!" });
+                }
+            });
+        });
+    }
+
+    $(document).on("click", ".voucher-card", function(e) {
+        if ($(e.target).is("input")) return;
+        
+        let radio = $(this).find("input[type='radio']");
+        
+        // Shopee style: click again to uncheck
+        if (radio.is(":checked")) {
+            radio.prop("checked", false).trigger("change");
+        } else {
+            radio.prop("checked", true).trigger("change");
+        }
+    });
+
+    $(document).on("change", ".voucher-radio", function() {
+        $(".voucher-card").removeClass("selected");
+        $(".voucher-radio:checked").closest(".voucher-card").addClass("selected");
+        
+        selectedVoucherMon = $("input[name='voucherMon']:checked").val() || "";
+        selectedVoucherShip = $("input[name='voucherShip']:checked").val() || "";
+        updateVoucherSelectionCount();
+    });
+
+    // Handle manual input in Modal
+    $("#txtManualVoucherCode").on("input", function() {
+        if($(this).val().trim().length > 0) {
+            $("#btnManualVoucherApply").prop("disabled", false).addClass("text-primary").removeClass("text-secondary");
+        } else {
+            $("#btnManualVoucherApply").prop("disabled", true).addClass("text-secondary").removeClass("text-primary");
+        }
+    });
+
+    $("#btnManualVoucherApply").click(function() {
+        let code = $("#txtManualVoucherCode").val().trim();
+        if(!code) return;
+        
+        let found = false;
+        $(".voucher-radio").each(function() {
+            if ($(this).val().toUpperCase() === code.toUpperCase()) {
+                $(this).prop("checked", true).trigger("change");
+                found = true;
+            }
+        });
+        
+        if (found) {
+            Swal.fire({ icon: 'success', title: 'Thành công', text: 'Đã tìm thấy và chọn mã!', timer: 1500, showConfirmButton: false });
+        } else {
+            Swal.fire({ icon: 'error', title: 'Không tìm thấy mã', text: 'Mã voucher không tồn tại trong danh sách này.' });
+        }
+    });
+
+    // Handle Confirm button inside Modal
+    $("#btnConfirmVouchers").click(async function() {
+        let btn = $(this);
+        btn.html('<i class="fas fa-spinner fa-spin"></i>').prop('disabled', true);
+        
+        let resMon = await applyVoucherAjax(selectedVoucherMon, "Mon");
+        let resShip = await applyVoucherAjax(selectedVoucherShip, "Ship");
+        
+        btn.html('ĐỒNG Ý').prop('disabled', false);
+        
+        if (resMon.success === false && selectedVoucherMon !== "") {
+            Swal.fire('Lỗi áp dụng Voucher Món', resMon.message, 'error');
+            $(`input[name='voucherMon'][value='${selectedVoucherMon}']`).prop("checked", false).trigger("change");
+        } else if (resShip.success === false && selectedVoucherShip !== "") {
+            Swal.fire('Lỗi áp dụng Voucher Ship', resShip.message, 'error');
+            $(`input[name='voucherShip'][value='${selectedVoucherShip}']`).prop("checked", false).trigger("change");
+        } else {
+            updateTotalMoney();
+            var modalEl = document.getElementById('voucherModal');
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                var modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+                else $("#voucherModal").modal('hide');
+            } else {
+                $("#voucherModal").modal('hide');
+            }
+            
+            // Force remove backdrop in case of Bootstrap conflicts
+            setTimeout(function() {
+                $('.modal-backdrop').remove();
+                $('body').removeClass('modal-open').css({ 'padding-right': '', 'overflow': '' });
+                $('#voucherModal').hide().removeClass('show').css('display', 'none');
+            }, 300);
+        }
+    });
+
+    // Đưa modal ra body ngay lập tức để tránh stacking context
+    $('#voucherModal').appendTo('body');
+    $('#cartNoteModal').appendTo('body');
+
+    // Initialize state on load
+    $(".voucher-radio:checked").closest(".voucher-card").addClass("selected");
+    updateVoucherSelectionCount();
+    
+    // Bulletproof cleanup for modal close
+    $('#voucherModal').on('hidden.bs.modal', function () {
+        $('.modal-backdrop').remove();
+        $('body').removeClass('modal-open').css({ 'padding-right': '', 'overflow': '' });
+        $(this).hide().removeClass('show').css('display', 'none');
+    });
 
     function attachItemEvents() {
         $(".check-shop").off("change").change(function() {
@@ -766,5 +1138,32 @@
         if (!text) return "";
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/'/g, "&#039;");
     }
+    </script>
+
+    <!-- GSAP Antigravity Animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script>
+    gsap.registerPlugin(ScrollTrigger);
+
+    // Floating animation for the checkout sidebar
+    gsap.to('.checkout-sidebar', {
+        y: -8, duration: 3, repeat: -1, yoyo: true,
+        ease: 'sine.inOut', delay: 0.5
+    });
+
+    // Observe DOM changes to animate new cart items when rendered
+    const cartObserver = new MutationObserver(function() {
+        const items = document.querySelectorAll('.shop-group');
+        if (items.length > 0) {
+            gsap.fromTo(items,
+                { opacity: 0, y: 40 },
+                { opacity: 1, y: 0, duration: 0.6, stagger: 0.12, ease: 'power3.out' }
+            );
+            cartObserver.disconnect();
+        }
+    });
+    const listArea = document.getElementById('listItemsArea');
+    if (listArea) cartObserver.observe(listArea, { childList: true });
     </script>
 }

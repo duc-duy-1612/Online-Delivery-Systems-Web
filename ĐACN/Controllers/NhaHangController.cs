@@ -16,36 +16,14 @@ namespace ĐACN.Controllers
 
 
 
+        private readonly ĐACN.Services.CacheService _cacheService = new ĐACN.Services.CacheService();
+
         private bool CheckLogin()
         {
             var tk = Session["TaiKhoan"] as TaiKhoan;
 
-
-            if (tk == null)
-            {
-                var cookieIP = Request.Cookies["TapFoodLoginIP"];
-                var cookieUser = Request.Cookies["TapFoodUser"];
-
-                if (cookieIP != null && cookieUser != null)
-                {
-
-                    if (cookieIP.Value == LayDiaChiIP())
-                    {
-                        var userInDb = db.TaiKhoans.FirstOrDefault(x => x.TenDangNhap == cookieUser.Value);
-
-                        if (userInDb != null && userInDb.VaiTro == "NhaHang" && userInDb.TrangThai == true)
-                        {
-                            Session["TaiKhoan"] = userInDb;
-                            tk = userInDb;
-                        }
-                    }
-                }
-            }
-
-
-            if (tk == null || tk.VaiTro != "NhaHang")
+            if (tk == null || tk.VaiTro != "NhaHang" || tk.TrangThai != true)
                 return false;
-
 
             if (Session["MaNH"] == null)
             {
@@ -78,7 +56,7 @@ namespace ĐACN.Controllers
         }
 
 
-        public ActionResult ThongKe(string timeRange = "Tháng", string statType = "Thống kê doanh thu")
+        public ActionResult ThongKe(string timeRange = "Ngày", string statType = "Thống kê doanh thu", DateTime? tuNgay = null, DateTime? denNgay = null)
         {
             if (!CheckLogin()) return RedirectLogin();
 
@@ -88,9 +66,40 @@ namespace ĐACN.Controllers
             ViewBag.CurrentTimeRange = timeRange;
             ViewBag.CurrentStatType = statType;
             ViewBag.ChartLabel = statType == "Thống kê doanh thu" ? "Doanh thu (VNĐ)" : "Số lượng (đơn)";
+            ViewBag.TuNgay = tuNgay?.ToString("yyyy-MM-dd");
+            ViewBag.DenNgay = denNgay?.ToString("yyyy-MM-dd");
 
+            var queryDonHang = db.DonHangs.Where(d => d.MaNH == maNH && d.ThoiGianDat != null);
+
+            // TÍNH TOÁN CÁC CHỈ SỐ KPI TỔNG QUAN
+            DateTime today = DateTime.Today;
+            DateTime yesterday = today.AddDays(-1);
+
+            var donHomNay = queryDonHang.Where(d => d.ThoiGianDat >= today).ToList();
+            var donHomQua = queryDonHang.Where(d => d.ThoiGianDat >= yesterday && d.ThoiGianDat < today).ToList();
+
+            double doanhThuHomNay = donHomNay.Where(d => d.TrangThai == "Hoàn thành" || d.TrangThai == "Hoàn tất").Sum(d => (double?)d.TongTien) ?? 0;
+            double doanhThuHomQua = donHomQua.Where(d => d.TrangThai == "Hoàn thành" || d.TrangThai == "Hoàn tất").Sum(d => (double?)d.TongTien) ?? 0;
+            
+            ViewBag.DoanhThuHomNay = doanhThuHomNay;
+            ViewBag.PhanTramTangTruong = doanhThuHomQua == 0 ? 100 : Math.Round(((doanhThuHomNay - doanhThuHomQua) / doanhThuHomQua) * 100, 1);
+            ViewBag.DonHangHomNay = donHomNay.Count;
+            ViewBag.DonChoXuLy = queryDonHang.Count(d => d.TrangThai == "Chờ xác nhận" || d.TrangThai == "Đang chuẩn bị");
+
+            // ÁP DỤNG BỘ LỌC NGÀY CHO BIỂU ĐỒ & TOP
+            var filteredDonHang = queryDonHang;
+            if (tuNgay.HasValue) filteredDonHang = filteredDonHang.Where(d => d.ThoiGianDat >= tuNgay.Value);
+            if (denNgay.HasValue) {
+                var denNgayCuoiNgay = denNgay.Value.AddDays(1).AddTicks(-1);
+                filteredDonHang = filteredDonHang.Where(d => d.ThoiGianDat <= denNgayCuoiNgay);
+            }
+
+            ViewBag.TongDoanhThuLoc = filteredDonHang.Where(d => d.TrangThai == "Hoàn thành" || d.TrangThai == "Hoàn tất").Sum(d => (double?)d.TongTien) ?? 0;
+
+            // DOANH THU THEO DANH MỤC
+            var donHangIds = filteredDonHang.Select(d => d.MaDon).ToList();
             var doanhThuTheoDanhMuc = db.ChiTietDonHangs
-                .Where(ct => ct.DonHang.MaNH == maNH)
+                .Where(ct => donHangIds.Contains(ct.MaDon))
                 .GroupBy(ct => ct.MonAn.MaLoai)
                 .Select(g => new
                 {
@@ -101,14 +110,13 @@ namespace ĐACN.Controllers
             ViewBag.LabelsLoai = doanhThuTheoDanhMuc.Select(x => x.Loai).ToList();
             ViewBag.DataDoanhThuLoai = doanhThuTheoDanhMuc.Select(x => x.DoanhThu).ToList();
 
-            var queryDonHang = db.DonHangs.Where(d => d.MaNH == maNH && d.ThoiGianDat != null);
-            
+            // DOANH THU THEO THỜI GIAN
             List<string> labelsThoiGian = new List<string>();
             List<double> dataThoiGian = new List<double>();
 
             if (timeRange == "Ngày")
             {
-                var grouped = queryDonHang
+                var grouped = filteredDonHang
                     .GroupBy(d => new { d.ThoiGianDat.Value.Year, d.ThoiGianDat.Value.Month, d.ThoiGianDat.Value.Day })
                     .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month).ThenBy(g => g.Key.Day)
                     .ToList()
@@ -121,7 +129,7 @@ namespace ĐACN.Controllers
             }
             else if (timeRange == "Quý")
             {
-                var grouped = queryDonHang
+                var grouped = filteredDonHang
                     .GroupBy(d => new { d.ThoiGianDat.Value.Year, Quy = (d.ThoiGianDat.Value.Month - 1) / 3 + 1 })
                     .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Quy)
                     .ToList()
@@ -134,7 +142,7 @@ namespace ĐACN.Controllers
             }
             else // Mặc định là Tháng
             {
-                var grouped = queryDonHang
+                var grouped = filteredDonHang
                     .GroupBy(d => new { d.ThoiGianDat.Value.Year, d.ThoiGianDat.Value.Month })
                     .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
                     .ToList()
@@ -149,21 +157,17 @@ namespace ĐACN.Controllers
             ViewBag.LabelsThoiGian = labelsThoiGian;
             ViewBag.DataDoanhThu = dataThoiGian;
 
-
-            var listTrangThai = db.DonHangs
-                .Where(d => d.MaNH == maNH)
-                .Select(d => d.TrangThai)
-                .ToList();
-
+            // TRẠNG THÁI ĐƠN HÀNG
+            var listTrangThai = filteredDonHang.Select(d => d.TrangThai).ToList();
             int dangXuLy = listTrangThai.Count(t => t != "Hoàn thành" && t != "Hoàn tất" && t != "Đã hủy" && t != "Hủy");
             int daGiao = listTrangThai.Count(t => t == "Hoàn thành" || t == "Hoàn tất");
             int daHuy = listTrangThai.Count(t => t == "Đã hủy" || t == "Hủy");
 
             ViewBag.DataTrangThaiDonHang = new List<int> { dangXuLy, daGiao, daHuy };
 
-
+            // MÓN ĂN BÁN CHẠY
             var topSanPham = db.ChiTietDonHangs
-                .Where(ct => ct.DonHang.MaNH == maNH)
+                .Where(ct => donHangIds.Contains(ct.MaDon))
                 .GroupBy(ct => ct.MaMon)
                 .Select(g => new ĐACN.Models.TopSanPhamViewModel
                 {
@@ -188,7 +192,11 @@ namespace ĐACN.Controllers
             string maNH = Session["MaNH"]?.ToString();
             var nhaHang = db.NhaHangs.FirstOrDefault(n => n.MaNH == maNH);
 
-            if (nhaHang == null) return HttpNotFound();
+            if (nhaHang == null) 
+            {
+                Session.Clear();
+                return RedirectToAction("Login", "Account");
+            }
 
             var tk = db.TaiKhoans.FirstOrDefault(t => t.MaTK == nhaHang.MaTK);
             ViewBag.MatKhauHienTai = tk?.MatKhau ?? "";
@@ -319,6 +327,7 @@ namespace ĐACN.Controllers
             {
                 mon.TrangThai = isChecked;
                 db.SaveChanges();
+                _cacheService.Remove("Menu_" + maNH);
                 return Json(new { success = true });
             }
             return Json(new { success = false, message = "Không tìm thấy món ăn" });
@@ -419,23 +428,14 @@ namespace ĐACN.Controllers
                 var maMonTrung = db.MonAns.Any(m => m.MaMon == maMonMoi);
                 if (maMonTrung)
                 {
-
-                    int attempt = 0;
+                    var existingCodes = new HashSet<string>(db.MonAns.Where(m => m.MaMon.StartsWith("MA")).Select(m => m.MaMon));
                     string maMonTmp = maMonMoi;
-                    while (db.MonAns.Any(m => m.MaMon == maMonTmp) && attempt < 100)
+                    int so = 1;
+                    if (int.TryParse(maMonTmp.Substring(2), out int parsedSo)) so = parsedSo;
+                    while (existingCodes.Contains(maMonTmp) && so < 9999)
                     {
-
-                        var soStr = maMonTmp.Substring(2);
-                        if (int.TryParse(soStr, out int so))
-                        {
-                            so++;
-                            maMonTmp = "MA" + so.ToString("D3");
-                        }
-                        else
-                        {
-                            maMonTmp = "MA" + (DateTime.Now.Ticks % 1000000).ToString("D6").Substring(0, 3);
-                        }
-                        attempt++;
+                        so++;
+                        maMonTmp = "MA" + so.ToString("D3");
                     }
                     maMonMoi = maMonTmp;
                 }
@@ -446,6 +446,7 @@ namespace ĐACN.Controllers
 
                 db.MonAns.Add(monAn);
                 db.SaveChanges();
+                _cacheService.Remove("Menu_" + maNH);
 
                 TempData["Success"] = "Thêm món ăn thành công!";
                 return RedirectToAction("QuanLySanPham");
@@ -464,41 +465,26 @@ namespace ĐACN.Controllers
             }
             catch (System.Data.SqlClient.SqlException sqlEx)
             {
-
-                string errorMsg = "Lỗi database: ";
+                System.Diagnostics.Debug.WriteLine("Lỗi SQL khi thêm món: " + sqlEx.Message);
+                string errorMsg = "Lỗi cơ sở dữ liệu: ";
                 if (sqlEx.Number == 2601 || sqlEx.Number == 2627)
                 {
                     errorMsg += "Mã món đã tồn tại!";
                 }
                 else if (sqlEx.Number == 547)
                 {
-                    errorMsg += "Dữ liệu không hợp lệ (Foreign Key constraint): ";
-                    if (sqlEx.Message.Contains("MaLoai"))
-                        errorMsg += "Danh mục không tồn tại!";
-                    else if (sqlEx.Message.Contains("MaNH"))
-                        errorMsg += "Nhà hàng không tồn tại!";
-                    else
-                        errorMsg += sqlEx.Message;
+                    errorMsg += "Dữ liệu không hợp lệ. Vui lòng kiểm tra danh mục và nhà hàng.";
                 }
                 else
                 {
-                    errorMsg += sqlEx.Message;
+                    errorMsg += "Vui lòng thử lại sau.";
                 }
                 TempData["Error"] = errorMsg;
             }
             catch (Exception ex)
             {
-
-                string errorMsg = "Lỗi khi thêm: " + ex.Message;
-                var innerEx = ex.InnerException;
-                int depth = 0;
-                while (innerEx != null && depth < 5)
-                {
-                    errorMsg += " | " + innerEx.Message;
-                    innerEx = innerEx.InnerException;
-                    depth++;
-                }
-                TempData["Error"] = errorMsg;
+                System.Diagnostics.Debug.WriteLine("Lỗi khi thêm món: " + ex.Message);
+                TempData["Error"] = "Lỗi khi thêm món ăn. Vui lòng thử lại sau.";
             }
 
             ViewBag.MaLoai = new SelectList(db.LoaiMonAns.ToList(), "MaLoai", "TenLoai", monAn.MaLoai);
@@ -561,31 +547,23 @@ namespace ĐACN.Controllers
 
         private string TaoMaMonTuTangGlobal()
         {
-
-            var tatCaMaMon = db.MonAns
+            var maxMaMon = db.MonAns
                 .Where(m => m.MaMon.StartsWith("MA") && m.MaMon.Length == 5)
+                .OrderByDescending(m => m.MaMon)
                 .Select(m => m.MaMon)
-                .ToList();
+                .FirstOrDefault();
 
-            if (!tatCaMaMon.Any())
+            if (string.IsNullOrEmpty(maxMaMon))
             {
                 return "MA001";
             }
 
+            if (int.TryParse(maxMaMon.Substring(2), out int so))
+            {
+                return "MA" + (so + 1).ToString("D3");
+            }
 
-            var maxMa = tatCaMaMon
-                .Where(m => m.Length == 5 && m.Substring(0, 2) == "MA")
-                .Select(m =>
-                {
-                    if (int.TryParse(m.Substring(2), out int so))
-                        return so;
-                    return 0;
-                })
-                .DefaultIfEmpty(0)
-                .Max();
-
-            int soMoi = maxMa + 1;
-            return "MA" + soMoi.ToString("D3");
+            return "MA" + (DateTime.Now.Ticks % 1000).ToString("D3");
         }
 
         [HttpGet]
@@ -634,12 +612,14 @@ namespace ĐACN.Controllers
                 }
 
                 db.SaveChanges();
+                _cacheService.Remove("Menu_" + maNH);
                 TempData["Success"] = "Cập nhật thành công!";
                 return RedirectToAction("QuanLySanPham");
             }
             catch (Exception ex)
             {
-                TempData["Error"] = "Lỗi cập nhật: " + ex.Message;
+                System.Diagnostics.Debug.WriteLine("Lỗi cập nhật món: " + ex.Message);
+                TempData["Error"] = "Lỗi khi cập nhật. Vui lòng thử lại sau.";
                 ViewBag.MaLoai = new SelectList(db.LoaiMonAns.ToList(), "MaLoai", "TenLoai", monAn.MaLoai);
                 return View(monAn);
             }
@@ -656,11 +636,13 @@ namespace ĐACN.Controllers
                 
                 mon.TrangThai = false; // Soft delete: Ngừng bán thay vì xóa cứng
                 db.SaveChanges();
+                _cacheService.Remove("Menu_" + maNH);
                 TempData["Success"] = "Đã chuyển sản phẩm sang trạng thái ngừng bán!";
             }
             catch (Exception ex)
             {
-                TempData["Error"] = "Lỗi xóa: " + ex.Message;
+                System.Diagnostics.Debug.WriteLine("Lỗi xóa món: " + ex.Message);
+                TempData["Error"] = "Lỗi khi xóa. Vui lòng thử lại sau.";
             }
             return RedirectToAction("QuanLySanPham");
         }
@@ -685,19 +667,40 @@ namespace ĐACN.Controllers
             }
 
 
-            var donHangs = query
-                .Select(d => new ĐACN.Models.DonHangListViewModel
+            var rawList = query
+                .Select(d => new
                 {
-                    MaDon = d.MaDon,
+                    d.MaDon,
                     TenKhachHang = d.KhachHang != null ? d.KhachHang.TenKH : null,
-                    ThoiGianDat = d.ThoiGianDat,
-                    TongTien = d.TongTien,
-                    TrangThai = d.TrangThai,
-
-                    TenShipper = d.Shipper != null ? d.Shipper.TenShipper : null
+                    d.ThoiGianDat,
+                    d.TongTien,
+                    d.TrangThai,
+                    TenShipper = d.Shipper != null ? d.Shipper.TenShipper : null,
+                    ChiTiet = d.ChiTietDonHangs.Select(ct => new
+                    {
+                        TenMon = ct.MonAn != null ? ct.MonAn.TenMon : "Món ăn",
+                        SoLuong = ct.SoLuong ?? 1,
+                        GhiChu = ct.Note
+                    })
                 })
                 .OrderByDescending(d => d.ThoiGianDat)
                 .ToList();
+
+            var donHangs = rawList.Select(d => new ĐACN.Models.DonHangListViewModel
+            {
+                MaDon = d.MaDon,
+                TenKhachHang = d.TenKhachHang,
+                ThoiGianDat = d.ThoiGianDat,
+                TongTien = d.TongTien,
+                TrangThai = d.TrangThai,
+                TenShipper = d.TenShipper,
+                DanhSachMon = d.ChiTiet.Select(ct => new ĐACN.Models.DonHangItemSummary
+                {
+                    TenMon = ct.TenMon,
+                    SoLuong = ct.SoLuong,
+                    GhiChu = ct.GhiChu
+                }).ToList()
+            }).ToList();
 
             ViewBag.TuNgay = tuNgay?.ToString("yyyy-MM-dd");
             ViewBag.DenNgay = denNgay?.ToString("yyyy-MM-dd");
@@ -799,7 +802,6 @@ namespace ĐACN.Controllers
                 don.TrangThai = trangThai;
                 try
                 {
-                    db.Database.ExecuteSqlCommand("IF OBJECT_ID('CHK_DonHang_TrangThai', 'C') IS NOT NULL ALTER TABLE DonHang DROP CONSTRAINT CHK_DonHang_TrangThai");
                     db.SaveChanges();
                     TempData["Msg"] = "Đã cập nhật trạng thái đơn hàng!";
 
@@ -894,16 +896,25 @@ namespace ĐACN.Controllers
                                  .ToList();
 
 
+            // Pre-fetch related order timestamps to eliminate N+1 database queries
+            var validMaDons = rawReviews
+                .Where(r => !string.IsNullOrEmpty(r.MaDon) && !r.MaDon.StartsWith("RATE_"))
+                .Select(r => r.MaDon)
+                .Distinct()
+                .ToList();
+
+            var donHangDict = db.DonHangs
+                .Where(d => validMaDons.Contains(d.MaDon))
+                .Select(d => new { d.MaDon, d.ThoiGianDat })
+                .ToDictionary(d => d.MaDon, d => d.ThoiGianDat);
+
             var danhGia = new List<ĐACN.Models.DanhGiaNhaHangDisplayViewModel>();
             foreach (var r in rawReviews)
             {
-
                 DateTime? thoiGianDat = null;
-                if (!string.IsNullOrEmpty(r.MaDon) && !r.MaDon.StartsWith("RATE_"))
+                if (!string.IsNullOrEmpty(r.MaDon) && donHangDict.TryGetValue(r.MaDon, out var tg))
                 {
-
-                    var donHang = db.DonHangs.FirstOrDefault(d => d.MaDon == r.MaDon);
-                    thoiGianDat = donHang?.ThoiGianDat;
+                    thoiGianDat = tg;
                 }
 
                 danhGia.Add(new ĐACN.Models.DanhGiaNhaHangDisplayViewModel
@@ -1015,12 +1026,14 @@ namespace ĐACN.Controllers
 
                 db.LoaiMonAns.Add(loaiMoi);
                 db.SaveChanges();
+                _cacheService.Remove("Home_DanhMucList");
 
                 TempData["Success"] = $"Đã thêm danh mục '{TenLoai}' thành công!";
             }
             catch (Exception ex)
             {
-                TempData["Error"] = "Lỗi khi thêm danh mục: " + ex.Message;
+                System.Diagnostics.Debug.WriteLine("Lỗi thêm danh mục: " + ex.Message);
+                TempData["Error"] = "Lỗi khi thêm danh mục. Vui lòng thử lại sau.";
             }
 
             return RedirectToAction("DanhMuc");
@@ -1100,11 +1113,13 @@ namespace ĐACN.Controllers
                 }
 
                 db.SaveChanges();
+                _cacheService.Remove("Home_DanhMucList");
                 TempData["Success"] = $"Đã cập nhật danh mục '{TenLoai}' thành công!";
             }
             catch (Exception ex)
             {
-                TempData["Error"] = "Lỗi khi cập nhật danh mục: " + ex.Message;
+                System.Diagnostics.Debug.WriteLine("Lỗi cập nhật danh mục: " + ex.Message);
+                TempData["Error"] = "Lỗi khi cập nhật danh mục. Vui lòng thử lại sau.";
             }
 
             return RedirectToAction("DanhMuc");
@@ -1161,12 +1176,14 @@ namespace ĐACN.Controllers
 
                 db.LoaiMonAns.Remove(loai);
                 db.SaveChanges();
+                _cacheService.Remove("Home_DanhMucList");
 
                 TempData["Success"] = $"Đã xóa danh mục '{loai.TenLoai}' thành công!";
             }
             catch (Exception ex)
             {
-                TempData["Error"] = "Lỗi khi xóa danh mục: " + ex.Message;
+                System.Diagnostics.Debug.WriteLine("Lỗi xóa danh mục: " + ex.Message);
+                TempData["Error"] = "Lỗi khi xóa danh mục. Vui lòng thử lại sau.";
             }
 
             return RedirectToAction("DanhMuc");
@@ -1178,7 +1195,7 @@ namespace ĐACN.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public JsonResult CapNhatTrangThaiAjax(string maDon, string trangThai)
+        public JsonResult CapNhatTrangThaiAjax(string maDon, string trangThai, int? prepTimePhut = null)
         {
             if (!CheckLogin()) return Json(new { success = false, message = "Chưa đăng nhập" });
 
@@ -1190,6 +1207,39 @@ namespace ĐACN.Controllers
 
             donHang.TrangThai = trangThai;
             db.SaveChanges();
+
+            // Trigger Shipper Dispatch khi nhà hàng xác nhận đơn hoặc làm món xong
+            if ((trangThai == "Đã xác nhận" || trangThai == "Đang làm món" || trangThai == "Đang lấy món") && string.IsNullOrEmpty(donHang.MaShipper))
+            {
+                try
+                {
+                    ĐACN.Services.OrderDispatcher.DispatchOrder(donHang.MaDon, donHang.MaNH);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[CapNhatTrangThaiAjax] DispatchOrder error: {ex.Message}");
+                }
+            }
+
+            // SignalR Notification
+            try
+            {
+                var hubDelivery = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<ĐACN.Hubs.DeliveryHub>();
+                if (trangThai == "Đã xác nhận" || trangThai == "Đang làm món")
+                {
+                    int mins = prepTimePhut ?? 15;
+                    hubDelivery.Clients.Group("KhachHang_" + donHang.MaKH).notifyNewOrder($"Nhà hàng đã xác nhận đơn {maDon} (Dự kiến xong trong {mins} phút)");
+                }
+                else if (trangThai == "Đang lấy món")
+                {
+                    hubDelivery.Clients.Group("KhachHang_" + donHang.MaKH).notifyNewOrder($"Món ăn đơn #{maDon} đã nấu xong, đang chờ tài xế đến lấy!");
+                    if (!string.IsNullOrEmpty(donHang.MaShipper))
+                    {
+                        hubDelivery.Clients.Group("Shipper_" + donHang.MaShipper).notifyNewOrder($"Món ăn đơn #{maDon} đã nấu xong, bạn có thể tới quán lấy ngay!");
+                    }
+                }
+            }
+            catch { }
             
             // Push Notification qua SignalR cho Khách Hàng
             string notifTitle = "Trạng thái đơn hàng: " + maDon;
@@ -1253,6 +1303,7 @@ namespace ĐACN.Controllers
                     else
                     {
                         context.Clients.Group("Shippers").notifyNewOrder($"Có đơn đã làm xong cần giao ngay ({maDon})");
+                        ĐACN.Services.OrderDispatcher.DispatchOrder(donHang.MaDon, donHang.MaNH);
                     }
                 }
                 catch { }
@@ -1261,10 +1312,54 @@ namespace ĐACN.Controllers
             }
             catch (Exception ex)
             {
-                TempData["Error"] = "Lỗi khi cập nhật trạng thái: " + ex.Message;
+                System.Diagnostics.Debug.WriteLine("Lỗi cập nhật trạng thái: " + ex.Message);
+                TempData["Error"] = "Lỗi khi cập nhật trạng thái. Vui lòng thử lại sau.";
             }
 
             return RedirectToAction("DanhSachDonHang");
+        }
+
+        [HttpGet]
+        public ActionResult ToppingMenu(string id)
+        {
+            if (!CheckLogin()) return RedirectToAction("Login", "Account");
+            string maNH = Session["MaNH"] as string;
+            
+            var mon = db.MonAns.FirstOrDefault(m => m.MaMon == id && m.MaNH == maNH);
+            if (mon == null)
+            {
+                TempData["Error"] = "Không tìm thấy món ăn hoặc bạn không có quyền!";
+                return RedirectToAction("QuanLySanPham");
+            }
+            
+            ViewBag.MonAn = mon;
+            var options = DACN.Models.Customizations.CustomizationService.GetCustomizationForDish(id);
+            return View(options);
+        }
+
+        [HttpPost]
+        public JsonResult SaveToppingMenu(string id, List<DACN.Models.Customizations.CustomizationGroup> groups)
+        {
+            if (!CheckLogin()) return Json(new { success = false, message = "Lỗi xác thực" });
+            string maNH = Session["MaNH"] as string;
+            
+            var mon = db.MonAns.FirstOrDefault(m => m.MaMon == id && m.MaNH == maNH);
+            if (mon == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy món ăn" });
+            }
+
+            if (groups == null) groups = new List<DACN.Models.Customizations.CustomizationGroup>();
+            
+            try
+            {
+                DACN.Models.Customizations.CustomizationService.SaveCustomizationForDish(id, groups);
+                return Json(new { success = true, message = "Lưu thành công!" });
+            }
+            catch(Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
         }
     }
 }

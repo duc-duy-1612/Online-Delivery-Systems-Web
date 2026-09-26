@@ -6,6 +6,7 @@ using System.Diagnostics;
 using ĐACN.Models;
 using ĐACN.Hubs;
 using System.Collections.Generic;
+using System.Web.Hosting;
 
 namespace ĐACN.Services
 {
@@ -13,102 +14,147 @@ namespace ĐACN.Services
     {
         public static void DispatchOrder(string maDon, string maNH)
         {
-            Task.Run(async () => 
+            if (string.IsNullOrWhiteSpace(maDon) || string.IsNullOrWhiteSpace(maNH)) return;
+
+            HostingEnvironment.QueueBackgroundWorkItem(async cancellationToken => 
             {
-                using (var db = new FoodDeliveryDBEntities()) 
+                try
                 {
-                    var don = db.DonHangs.Find(maDon);
-                    if (don == null) return;
-                    
-                    var nhaHang = db.NhaHangs.Find(maNH);
-                    if (nhaHang == null) return;
-
-                    double nhLat = nhaHang.Latitude ?? 0;
-                    double nhLng = nhaHang.Longitude ?? 0;
-
-                    if (nhLat == 0) return;
-
-                    // Get online shippers from RealTimeLocationService
+                    // Lấy danh sách shippers đang online từ in-memory cache
                     var activeLocations = RealTimeLocationService.GetAllLocations()
-                        .Where(l => (DateTime.Now - l.ThoiGianCapNhat).TotalMinutes < 15) // Only recently updated locations
+                        .Where(l => (DateTime.Now - l.ThoiGianCapNhat).TotalMinutes < 15)
                         .ToList();
-
-                    // Filter only shippers that are in DB and not currently delivering another order
-                    var availableShippers = new List<ShipperLocation>();
-                    foreach (var loc in activeLocations)
-                    {
-                        var s = db.Shippers.FirstOrDefault(x => x.MaShipper == loc.MaShipper && x.TaiKhoan.TrangThai == true);
-                        if (s != null)
-                        {
-                            // Check if shipper is free (doesn't have orders that are "Đang lấy món" or "Đang giao")
-                            bool isBusy = db.DonHangs.Any(d => d.MaShipper == s.MaShipper && (d.TrangThai == "Đang lấy món" || d.TrangThai == "Đang giao"));
-                            if (!isBusy)
-                            {
-                                availableShippers.Add(loc);
-                            }
-                        }
-                    }
-
-                    // Sort by distance using Haversine
-                    var sortedShippers = availableShippers.OrderBy(loc => 
-                        CalculateHaversineDistance(nhLat, nhLng, loc.Latitude, loc.Longitude)
-                    ).ToList();
 
                     var context = GlobalHost.ConnectionManager.GetHubContext<DeliveryHub>();
 
-                    bool accepted = false;
+                    string nhaHangTen = null;
+                    double nhLat = 0;
+                    double nhLng = 0;
+                    HashSet<string> validSet = null;
+                    HashSet<string> busySet = null;
 
-                    foreach(var shipperLoc in sortedShippers) 
+                    // Truy vấn dữ liệu ban đầu với DbContext ngắn hạn, AsNoTracking để tối ưu hiệu năng
+                    using (var db = new FoodDeliveryDBEntities()) 
                     {
-                        // Check if order is already accepted
-                        var currentDon = db.DonHangs.Find(maDon);
-                        if (!string.IsNullOrEmpty(currentDon.MaShipper) || currentDon.TrangThai == "Đã hủy") 
+                        var don = db.DonHangs.AsNoTracking()
+                            .Where(d => d.MaDon == maDon)
+                            .Select(d => new { d.MaShipper, d.TrangThai })
+                            .FirstOrDefault();
+
+                        if (don == null || !string.IsNullOrEmpty(don.MaShipper)) return;
+                        if (don.TrangThai == OrderStatuses.DaHuy || don.TrangThai == OrderStatuses.Huy) return;
+                        
+                        var nhaHang = db.NhaHangs.AsNoTracking().FirstOrDefault(n => n.MaNH == maNH);
+                        if (nhaHang == null) return;
+
+                        nhLat = nhaHang.Latitude ?? 0;
+                        nhLng = nhaHang.Longitude ?? 0;
+                        if (nhLat == 0) return;
+                        nhaHangTen = nhaHang.TenNH ?? maNH;
+
+                        if (!activeLocations.Any())
                         {
-                            accepted = true;
-                            break;
+                            context.Clients.Group("Shippers").notifyNewOrder($"Có đơn mới cần giao từ nhà hàng {nhaHangTen} ({maDon})");
+                            return;
                         }
 
-                        // Ping this specific shipper
-                        double dist = CalculateHaversineDistance(nhLat, nhLng, shipperLoc.Latitude, shipperLoc.Longitude);
-                        context.Clients.Group("Shipper_" + shipperLoc.MaShipper).pingOrder(maDon, Math.Round(dist, 1));
-                        
-                        // Wait 15 seconds for shipper to accept
-                        await Task.Delay(15000);
-                        
-                        // Re-fetch order from DB to see if THIS shipper or anyone accepted
-                        db.Entry(currentDon).Reload();
-                        if (!string.IsNullOrEmpty(currentDon.MaShipper) || currentDon.TrangThai == "Đã hủy")
-                        {
-                            accepted = true;
-                            break;
-                        }
+                        var activeShipperIds = activeLocations.Select(l => l.MaShipper).Distinct().ToList();
+                        var validShipperIds = db.Shippers.AsNoTracking()
+                            .Where(s => activeShipperIds.Contains(s.MaShipper) && s.TaiKhoan != null && s.TaiKhoan.TrangThai == true)
+                            .Select(s => s.MaShipper)
+                            .ToList();
+
+                        var busyShipperIds = db.DonHangs.AsNoTracking()
+                            .Where(d => validShipperIds.Contains(d.MaShipper) && (d.TrangThai == OrderStatuses.DangLayMon || d.TrangThai == OrderStatuses.DangGiao))
+                            .Select(d => d.MaShipper)
+                            .Distinct()
+                            .ToList();
+
+                        busySet = new HashSet<string>(busyShipperIds);
+                        validSet = new HashSet<string>(validShipperIds);
                     }
 
-                    // If NO shipper accepted after looping all
-                    if (!accepted)
+                    var sortedShippers = activeLocations
+                        .Where(loc => validSet.Contains(loc.MaShipper) && !busySet.Contains(loc.MaShipper))
+                        .Select(loc => new
+                        {
+                            Location = loc,
+                            Distance = GeoUtils.CalculateDistanceInKm(nhLat, nhLng, loc.Latitude, loc.Longitude)
+                        })
+                        .OrderBy(x => x.Distance)
+                        .ToList();
+
+                    if (!sortedShippers.Any())
                     {
-                         // Broadcast to all shippers as a fallback
-                         context.Clients.Group("Shippers").notifyNewOrder($"Có đơn mới cần giao từ nhà hàng {maNH} ({maDon})");
+                        context.Clients.Group("Shippers").notifyNewOrder($"Có đơn mới cần giao từ nhà hàng {nhaHangTen} ({maDon})");
+                        return;
+                    }
+
+                    bool acceptedOrTerminated = false;
+
+                    foreach (var item in sortedShippers) 
+                    {
+                        if (cancellationToken.IsCancellationRequested) break;
+
+                        if (CheckIfOrderAssignedOrCancelled(maDon))
+                        {
+                            acceptedOrTerminated = true;
+                            break;
+                        }
+
+                        // Ping shipper này với khoảng cách km
+                        context.Clients.Group("Shipper_" + item.Location.MaShipper).pingOrder(maDon, Math.Round(item.Distance, 1));
+                        
+                        // Chờ tối đa 15 giây, kiểm tra mỗi 1.5 giây để phản hồi ngay khi shipper nhận
+                        for (int i = 0; i < 10; i++)
+                        {
+                            await Task.Delay(1500, cancellationToken);
+                            if (CheckIfOrderAssignedOrCancelled(maDon))
+                            {
+                                acceptedOrTerminated = true;
+                                break;
+                            }
+                        }
+
+                        if (acceptedOrTerminated) break;
+                    }
+
+                    if (!acceptedOrTerminated)
+                    {
+                        context.Clients.Group("Shippers").notifyNewOrder($"Có đơn mới cần giao từ nhà hàng {nhaHangTen} ({maDon})");
                     }
                 }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[OrderDispatcher Error]: {ex.Message}");
+                }
             });
+        }
+
+        private static bool CheckIfOrderAssignedOrCancelled(string maDon)
+        {
+            try
+            {
+                using (var db = new FoodDeliveryDBEntities())
+                {
+                    var status = db.DonHangs.AsNoTracking()
+                        .Where(d => d.MaDon == maDon)
+                        .Select(d => new { d.MaShipper, d.TrangThai })
+                        .FirstOrDefault();
+
+                    if (status == null) return true;
+                    return !string.IsNullOrEmpty(status.MaShipper) || status.TrangThai == OrderStatuses.DaHuy || status.TrangThai == OrderStatuses.Huy;
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
         
         private static double CalculateHaversineDistance(double lat1, double lon1, double lat2, double lon2)
         {
-            var R = 6371; // Radius of the earth in km
-            var dLat = ToRadians(lat2 - lat1);
-            var dLon = ToRadians(lon2 - lon1);
-            var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-                    Math.Cos(ToRadians(lat1)) * Math.Cos(ToRadians(lat2)) *
-                    Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
-            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-            return R * c;
-        }
-
-        private static double ToRadians(double angle)
-        {
-            return Math.PI * angle / 180.0;
+            return GeoUtils.CalculateDistanceInKm(lat1, lon1, lat2, lon2);
         }
     }
 }

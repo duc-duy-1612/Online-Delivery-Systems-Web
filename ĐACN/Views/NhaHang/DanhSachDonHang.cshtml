@@ -1,100 +1,305 @@
 @model IEnumerable<ĐACN.Models.DonHangListViewModel>
 
 @{
-    ViewBag.Title = "Danh sách đơn hàng";
+    ViewBag.Title = "Quản lý Đơn hàng & Màn hình Bếp (KDS)";
+    ViewBag.Active = "DonHang";
     Layout = "~/Views/Shared/_LayoutNhaHang.cshtml";
 }
 
-<!-- CSS cho Kanban Board -->
+<!-- CSS cho Kanban Board & KDS Mode -->
 <style>
+    /* ===== DANH SACH DON HANG - PREMIUM KANBAN & KDS ===== */
+    h3.fw-bold { color: #1a202c !important; font-size: 1.5rem; }
+
+    .d-flex.gap-2 .form-control {
+        border-radius: 0.75rem;
+        border: 1.5px solid #e2e8f0;
+        padding: 0.5rem 1rem;
+        background: #f7fafc;
+        transition: all 0.2s;
+    }
+    .d-flex.gap-2 .form-control:focus {
+        border-color: #ff5a2b;
+        box-shadow: 0 0 0 3px rgba(255,90,43,0.12);
+        background: #fff;
+    }
+    .btn-gradient-primary {
+        background: linear-gradient(135deg, #ff5a2b, #ff9f1c) !important;
+        border: none !important; border-radius: 0.75rem;
+        font-weight: 700; padding: 0.5rem 1.25rem;
+        box-shadow: 0 4px 12px rgba(255,90,43,0.25);
+        color: #fff !important;
+    }
+
+    /* ===== KANBAN BOARD ===== */
     .kanban-board {
         display: flex;
         overflow-x: auto;
-        padding-bottom: 20px;
-        min-height: 70vh;
-        gap: 1.5rem;
+        padding-bottom: 24px;
+        min-height: 72vh;
+        gap: 1.25rem;
+        padding-top: 4px;
     }
+
+    /* ===== KANBAN COLUMNS ===== */
     .kanban-column {
-        flex: 1;
-        min-width: 300px;
-        background: #f4f5f7;
-        border-radius: 8px;
-        padding: 15px;
-        display: flex;
-        flex-direction: column;
+        flex: 1; min-width: 300px;
+        background: #f1f5f9;
+        border-radius: 1.25rem;
+        padding: 1rem;
+        display: flex; flex-direction: column;
+        border: 1px solid rgba(0,0,0,0.06);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        transition: background 0.3s;
     }
+
     .kanban-column-header {
-        font-weight: bold;
-        padding-bottom: 15px;
-        border-bottom: 2px solid #e1e4e8;
-        margin-bottom: 15px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        font-weight: 700; font-size: 0.95rem;
+        padding-bottom: 12px;
+        border-bottom: 2px solid rgba(0,0,0,0.08);
+        margin-bottom: 12px;
+        display: flex; justify-content: space-between; align-items: center;
     }
-    .kanban-cards {
-        flex: 1;
-        min-height: 150px;
-    }
+
+    .kanban-column:nth-child(1) { background: #fff5f5; border-top: 4px solid #ff5a2b; }
+    .kanban-column:nth-child(1) .kanban-column-header { border-bottom-color: rgba(255,90,43,0.15); }
+    .kanban-column:nth-child(2) { background: #fffbeb; border-top: 4px solid #f59e0b; }
+    .kanban-column:nth-child(2) .kanban-column-header { border-bottom-color: rgba(245,158,11,0.2); }
+    .kanban-column:nth-child(3) { background: #eff6ff; border-top: 4px solid #3b82f6; }
+    .kanban-column:nth-child(3) .kanban-column-header { border-bottom-color: rgba(59,130,246,0.2); }
+    .kanban-column:nth-child(4) { background: #f0fdf4; border-top: 4px solid #22c55e; }
+    .kanban-column:nth-child(4) .kanban-column-header { border-bottom-color: rgba(34,197,94,0.2); }
+
+    .kanban-cards { flex: 1; min-height: 120px; }
+
+    /* ===== KANBAN CARDS ===== */
     .kanban-card {
         background: #fff;
-        border-radius: 8px;
-        padding: 15px;
-        margin-bottom: 15px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border-radius: 1rem;
+        padding: 1rem;
+        margin-bottom: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.06);
         cursor: grab;
-        border-left: 4px solid transparent;
-        transition: transform 0.2s, box-shadow 0.2s;
+        border-left: 5px solid transparent;
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        position: relative;
     }
     .kanban-card:hover {
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        transform: translateY(-3px);
     }
-    .kanban-card:active {
-        cursor: grabbing;
-    }
-    .kanban-card.status-new { border-left-color: #dc3545; }
-    .kanban-card.status-prep { border-left-color: #ffc107; }
-    .kanban-card.status-ready { border-left-color: #0dcaf0; }
-    .kanban-card.status-done { border-left-color: #198754; }
+    .kanban-card:active { cursor: grabbing; }
 
-    .card-title {
-        font-weight: 700;
-        margin-bottom: 5px;
-        display: flex;
-        justify-content: space-between;
+    .kanban-card.status-new   { border-left-color: #ff5a2b; }
+    .kanban-card.status-prep  { border-left-color: #f59e0b; }
+    .kanban-card.status-ready { border-left-color: #3b82f6; }
+    .kanban-card.status-done  { border-left-color: #22c55e; }
+
+    /* ===== CARD CONTENT ===== */
+    .card-title { font-weight: 700; margin-bottom: 4px; display: flex; justify-content: space-between; font-size: 0.95rem; color: #1a202c; }
+    .card-customer { font-weight: 600; color: #334155; font-size: 0.88rem; }
+    .card-time { font-size: 0.78rem; color: #64748b; }
+    
+    /* ===== KITCHEN TICKET ITEMS (KDS) ===== */
+    .card-ticket-items {
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+        border-radius: 0.65rem;
+        padding: 0.6rem 0.75rem;
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
     }
-    .card-customer {
-        font-weight: 600;
-        color: #333;
+    .ticket-item-row {
+        font-size: 0.88rem;
+        line-height: 1.35;
+        padding: 2px 0;
     }
-    .card-time {
+    .ticket-qty-badge {
+        font-weight: 800;
+        min-width: 22px;
+        text-align: center;
+        background: #e2e8f0;
+        color: #1e293b;
+        border-radius: 6px;
+        padding: 1px 5px;
         font-size: 0.8rem;
-        color: #6c757d;
     }
-    .card-shipper {
+    .ticket-note {
+        font-size: 0.75rem;
+        background: #fef3c7;
+        color: #92400e;
+        border-radius: 4px;
+        padding: 2px 6px;
+        display: inline-block;
+        margin-top: 2px;
+    }
+
+    /* ===== PREP TIMER ===== */
+    .prep-timer-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-family: 'SF Pro Text', -apple-system, monospace;
+        font-weight: 700;
         font-size: 0.85rem;
-        background: #e9ecef;
-        padding: 2px 8px;
+        border-radius: 20px;
+        padding: 3px 10px;
+        background: #fef3c7;
+        color: #b45309;
+        border: 1px solid #fde68a;
+    }
+    .prep-timer-badge.warning {
+        background: #fed7aa;
+        color: #9a3412;
+        border-color: #fdba74;
+    }
+    .prep-timer-badge.danger {
+        background: #fecaca;
+        color: #991b1b;
+        border-color: #fca5a5;
+        animation: pulseDanger 1.2s infinite;
+    }
+    @@keyframes pulseDanger {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+
+    .card-shipper {
+        font-size: 0.8rem;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        padding: 3px 10px;
         border-radius: 12px;
         display: inline-block;
-        margin-top: 8px;
+        color: #1e40af; font-weight: 600;
     }
-    .sortable-ghost {
-        opacity: 0.4;
-        background-color: #f8f9fa;
+
+    /* ===== BADGES ===== */
+    .badge.rounded-pill { font-size: 0.78rem; font-weight: 700; padding: 4px 10px; }
+
+    .sortable-ghost { opacity: 0.3; background: #f8f9fa !important; border: 2px dashed #cbd5e0; }
+
+    /* ===== KDS FULLSCREEN MODE ===== */
+    body.kds-mode {
+        background-color: #0b0f19 !important;
+        color: #f1f5f9 !important;
+        overflow-x: hidden;
+    }
+    body.kds-mode .sidebar,
+    body.kds-mode .topbar,
+    body.kds-mode .navbar,
+    body.kds-mode header,
+    body.kds-mode footer,
+    body.kds-mode .filter-bar {
+        display: none !important;
+    }
+    body.kds-mode .container-fluid {
+        max-width: 100% !important;
+        padding: 10px !important;
+    }
+    body.kds-mode .kanban-board {
+        min-height: 90vh;
+        gap: 1rem;
+    }
+    body.kds-mode .kanban-column {
+        background: #182234 !important;
+        border-color: #334155 !important;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    body.kds-mode .kanban-column-header {
+        color: #f8fafc !important;
+        font-size: 1.1rem !important;
+    }
+    body.kds-mode .kanban-card {
+        background: #0f172a !important;
+        color: #f8fafc !important;
+        border: 1px solid #334155;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    }
+    body.kds-mode .card-title {
+        color: #60a5fa !important;
+        font-size: 1.15rem !important;
+    }
+    body.kds-mode .card-customer {
+        color: #cbd5e1 !important;
+        font-size: 1rem !important;
+    }
+    body.kds-mode .card-ticket-items {
+        background: #1e293b !important;
+        border-color: #475569 !important;
+    }
+    body.kds-mode .ticket-item-row {
+        font-size: 1.05rem !important;
+        color: #f8fafc !important;
+        font-weight: 600;
+    }
+    body.kds-mode .ticket-qty-badge {
+        background: #ff5a2b !important;
+        color: #fff !important;
+        font-size: 1rem !important;
+        padding: 2px 8px !important;
+    }
+    body.kds-mode .ticket-note {
+        font-size: 0.85rem !important;
+        background: #78350f !important;
+        color: #fef3c7 !important;
+    }
+    body.kds-mode .price-tag {
+        display: none !important;
+    }
+    body.kds-mode #kds-control-bar {
+        display: flex !important;
+    }
+    #kds-control-bar {
+        display: none;
+        background: #1e293b;
+        padding: 8px 16px;
+        border-radius: 12px;
+        margin-bottom: 12px;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid #334155;
     }
 </style>
 
-<div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold text-dark"><i class="bi bi-kanban"></i> Quản lý Đơn hàng</h3>
+<div class="container-fluid mt-3">
+    <!-- KDS Header Bar (shown only when in KDS mode) -->
+    <div id="kds-control-bar">
+        <div class="d-flex align-items-center gap-3">
+            <span class="badge bg-danger px-3 py-2 fs-6"><i class="bi bi-fire"></i> KDS - MÀN HÌNH BẾP NẤU</span>
+            <span id="kds-live-clock" class="text-white-50 fs-6 font-monospace">00:00:00</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <button type="button" id="btnTestSoundKds" class="btn btn-sm btn-outline-warning text-white">
+                <i class="bi bi-volume-up-fill"></i> Thử chuông bếp
+            </button>
+            <button type="button" id="btnExitKds" class="btn btn-sm btn-light fw-bold">
+                <i class="bi bi-x-circle"></i> Thoát chế độ Bếp
+            </button>
+        </div>
+    </div>
+
+    <!-- Normal Header Toolbar -->
+    <div class="d-flex justify-content-between align-items-center mb-3 filter-bar flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <h3 class="fw-bold text-dark m-0"><i class="bi bi-kanban"></i> Quản lý Đơn hàng & Bếp</h3>
+            <span class="badge bg-primary rounded-pill">KDS Ready</span>
+        </div>
         
-        <form method="get" action="@Url.Action("DanhSachDonHang", "NhaHang")" class="d-flex gap-2">
-            <input type="date" name="tuNgay" class="form-control" value="@ViewBag.TuNgay" />
-            <input type="date" name="denNgay" class="form-control" value="@ViewBag.DenNgay" />
-            <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Lọc</button>
-        </form>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <button type="button" id="btnToggleKds" class="btn btn-dark fw-bold shadow-sm">
+                <i class="bi bi-display"></i> Màn hình Bếp (KDS)
+            </button>
+            <button type="button" id="btnSoundTest" class="btn btn-outline-secondary" title="Kiểm tra âm thanh chuông bếp">
+                <i class="bi bi-bell-fill text-warning"></i>
+            </button>
+            <form method="get" action="@Url.Action("DanhSachDonHang", "NhaHang")" class="d-flex gap-2">
+                <input type="date" name="tuNgay" class="form-control form-control-sm" value="@ViewBag.TuNgay" />
+                <input type="date" name="denNgay" class="form-control form-control-sm" value="@ViewBag.DenNgay" />
+                <button type="submit" class="btn btn-gradient-primary btn-sm"><i class="bi bi-search"></i> Lọc</button>
+            </form>
+        </div>
     </div>
 
     @Html.AntiForgeryToken()
@@ -111,7 +316,7 @@
         <!-- Cột 1: Mới nhận -->
         <div class="kanban-column">
             <div class="kanban-column-header">
-                <span class="text-danger"><i class="bi bi-bell-fill"></i> Mới nhận (Chờ xác nhận)</span>
+                <span class="text-danger"><i class="bi bi-bell-fill"></i> Mới nhận (Chờ duyệt)</span>
                 <span class="badge bg-danger rounded-pill" id="count-new">0</span>
             </div>
             <div class="kanban-cards" id="col-new" data-status="Chờ xác nhận">
@@ -120,43 +325,108 @@
                     <div class="kanban-card status-new" data-id="@don.MaDon">
                         <div class="card-title">
                             <span class="text-primary">#@don.MaDon</span>
+                            <span class="card-time"><i class="bi bi-clock"></i> @(don.ThoiGianDat?.ToString("HH:mm"))</span>
                         </div>
                         <div class="card-customer"><i class="bi bi-person"></i> @don.TenKhachHang</div>
-                        <div class="card-time mt-1"><i class="bi bi-clock"></i> @(don.ThoiGianDat?.ToString("HH:mm - dd/MM/yyyy"))</div>
+
+                        <!-- Danh sách món ăn (Kitchen Ticket) -->
+                        @if (don.DanhSachMon != null && don.DanhSachMon.Any())
+                        {
+                            <div class="card-ticket-items">
+                                @foreach (var mon in don.DanhSachMon)
+                                {
+                                    <div class="ticket-item-row d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <span class="ticket-qty-badge me-1">@mon.SoLuong</span>
+                                            <span class="kds-dish-name">@mon.TenMon</span>
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(mon.GhiChu))
+                                    {
+                                        <div class="ticket-note"><i class="bi bi-pencil-fill"></i> @mon.GhiChu</div>
+                                    }
+                                }
+                            </div>
+                        }
+
                         <div class="mt-2 d-flex justify-content-between align-items-center">
-                            <span class="fw-bold text-danger">@string.Format("{0:N0}đ", don.TongTien)</span>
+                            <span class="fw-bold text-danger price-tag">@string.Format("{0:N0}đ", don.TongTien)</span>
                             <a href="@Url.Action("ChiTietDonHang", "NhaHang", new { id = don.MaDon })" class="btn btn-sm btn-outline-secondary">Chi tiết</a>
+                        </div>
+
+                        <!-- Chọn thời gian chuẩn bị món & Nhận đơn (Prep Time) -->
+                        <div class="btn-group w-100 mt-2">
+                            <button type="button" class="btn btn-sm btn-success fw-bold btn-quick-accept" data-id="@don.MaDon" data-prep="15">
+                                <i class="bi bi-check-lg"></i> Nhận làm (15p)
+                            </button>
+                            <button type="button" class="btn btn-sm btn-success dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                                <span class="visually-hidden">Tùy chọn thời gian</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow">
+                                <li><a class="dropdown-item btn-quick-accept" href="javascript:void(0)" data-id="@don.MaDon" data-prep="10"><i class="bi bi-clock"></i> Làm nhanh (10 phút)</a></li>
+                                <li><a class="dropdown-item btn-quick-accept" href="javascript:void(0)" data-id="@don.MaDon" data-prep="20"><i class="bi bi-clock"></i> Tiêu chuẩn (20 phút)</a></li>
+                                <li><a class="dropdown-item btn-quick-accept" href="javascript:void(0)" data-id="@don.MaDon" data-prep="30"><i class="bi bi-clock"></i> Món cầu kỳ (30 phút)</a></li>
+                            </ul>
                         </div>
                     </div>
                 }
             </div>
         </div>
 
-        <!-- Cột 2: Đang chuẩn bị -->
+        <!-- Cột 2: Đang chuẩn bị (KDS Cooking) -->
         <div class="kanban-column">
             <div class="kanban-column-header">
-                <span class="text-warning text-dark"><i class="bi bi-fire"></i> Đang chuẩn bị</span>
+                <span class="text-warning text-dark"><i class="bi bi-fire"></i> Đang chuẩn bị món</span>
                 <span class="badge bg-warning text-dark rounded-pill" id="count-prep">0</span>
             </div>
             <div class="kanban-cards" id="col-prep" data-status="Đã xác nhận">
-                @foreach (var don in Model.Where(d => d.TrangThai == "Đã xác nhận"))
+                @foreach (var don in Model.Where(d => d.TrangThai == "Đã xác nhận" || d.TrangThai == "Đang làm món"))
                 {
                     <div class="kanban-card status-prep" data-id="@don.MaDon">
                         <div class="card-title">
                             <span class="text-primary">#@don.MaDon</span>
+                            <!-- Đồng hồ đếm ngược Prep Time -->
+                            <div class="prep-timer-badge" data-order-time="@(don.ThoiGianDat?.ToString("o"))" data-prep-mins="@(don.ThoiGianChuanBiPhut ?? 15)">
+                                <i class="bi bi-stopwatch"></i> <span class="timer-countdown">15:00</span>
+                            </div>
                         </div>
                         <div class="card-customer"><i class="bi bi-person"></i> @don.TenKhachHang</div>
-                        <div class="card-time mt-1"><i class="bi bi-clock"></i> @(don.ThoiGianDat?.ToString("HH:mm - dd/MM/yyyy"))</div>
+
+                        <!-- Danh sách món cho Bếp -->
+                        @if (don.DanhSachMon != null && don.DanhSachMon.Any())
+                        {
+                            <div class="card-ticket-items">
+                                @foreach (var mon in don.DanhSachMon)
+                                {
+                                    <div class="ticket-item-row d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <span class="ticket-qty-badge me-1">@mon.SoLuong</span>
+                                            <span class="kds-dish-name">@mon.TenMon</span>
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(mon.GhiChu))
+                                    {
+                                        <div class="ticket-note"><i class="bi bi-pencil-fill"></i> @mon.GhiChu</div>
+                                    }
+                                }
+                            </div>
+                        }
+
                         <div class="mt-2 d-flex justify-content-between align-items-center">
-                            <span class="fw-bold text-danger">@string.Format("{0:N0}đ", don.TongTien)</span>
+                            <span class="fw-bold text-danger price-tag">@string.Format("{0:N0}đ", don.TongTien)</span>
                             <a href="@Url.Action("ChiTietDonHang", "NhaHang", new { id = don.MaDon })" class="btn btn-sm btn-outline-secondary">Chi tiết</a>
                         </div>
+
+                        <!-- Nút báo bếp đã làm xong món -->
+                        <button type="button" class="btn btn-sm btn-primary w-100 mt-2 fw-bold btn-mark-cooked" data-id="@don.MaDon">
+                            <i class="bi bi-check2-circle"></i> Bếp xong món ➔ Gọi Shipper
+                        </button>
                     </div>
                 }
             </div>
         </div>
 
-        <!-- Cột 3: Đang giao / Chờ Shipper -->
+        <!-- Cột 3: Sẵn sàng / Đang giao -->
         <div class="kanban-column">
             <div class="kanban-column-header">
                 <span class="text-info text-dark"><i class="bi bi-bicycle"></i> Sẵn sàng / Đang giao</span>
@@ -168,12 +438,34 @@
                     <div class="kanban-card status-ready" data-id="@don.MaDon">
                         <div class="card-title">
                             <span class="text-primary">#@don.MaDon</span>
+                            <span class="card-time"><i class="bi bi-clock"></i> @(don.ThoiGianDat?.ToString("HH:mm"))</span>
                         </div>
                         <div class="card-customer"><i class="bi bi-person"></i> @don.TenKhachHang</div>
-                        <div class="card-time mt-1"><i class="bi bi-clock"></i> @(don.ThoiGianDat?.ToString("HH:mm - dd/MM/yyyy"))</div>
-                        <div class="card-shipper"><i class="bi bi-box-seam"></i> @(don.TenShipper ?? "Chưa có Shipper")</div>
-                        <div class="mt-2 d-flex justify-content-between align-items-center">
-                            <span class="fw-bold text-danger">@string.Format("{0:N0}đ", don.TongTien)</span>
+
+                        @if (don.DanhSachMon != null && don.DanhSachMon.Any())
+                        {
+                            <div class="card-ticket-items">
+                                @foreach (var mon in don.DanhSachMon)
+                                {
+                                    <div class="ticket-item-row d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <span class="ticket-qty-badge me-1">@mon.SoLuong</span>
+                                            <span class="kds-dish-name">@mon.TenMon</span>
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(mon.GhiChu))
+                                    {
+                                        <div class="ticket-note"><i class="bi bi-pencil-fill"></i> @mon.GhiChu</div>
+                                    }
+                                }
+                            </div>
+                        }
+
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <div class="card-shipper"><i class="bi bi-box-seam"></i> @(don.TenShipper ?? "Đang tìm Shipper...")</div>
+                            <span class="fw-bold text-danger price-tag">@string.Format("{0:N0}đ", don.TongTien)</span>
+                        </div>
+                        <div class="mt-2 text-end">
                             <a href="@Url.Action("ChiTietDonHang", "NhaHang", new { id = don.MaDon })" class="btn btn-sm btn-outline-secondary">Chi tiết</a>
                         </div>
                     </div>
@@ -193,10 +485,11 @@
                     <div class="kanban-card status-done" data-id="@don.MaDon">
                         <div class="card-title">
                             <span class="text-primary">#@don.MaDon</span>
+                            <span class="card-time"><i class="bi bi-clock"></i> @(don.ThoiGianDat?.ToString("HH:mm - dd/MM"))</span>
                         </div>
                         <div class="card-customer"><i class="bi bi-person"></i> @don.TenKhachHang</div>
                         <div class="mt-2 d-flex justify-content-between align-items-center">
-                            <span class="fw-bold text-danger">@string.Format("{0:N0}đ", don.TongTien)</span>
+                            <span class="fw-bold text-success price-tag">@string.Format("{0:N0}đ", don.TongTien)</span>
                             <a href="@Url.Action("ChiTietDonHang", "NhaHang", new { id = don.MaDon })" class="btn btn-sm btn-outline-secondary">Chi tiết</a>
                         </div>
                     </div>
@@ -207,11 +500,13 @@
 </div>
 
 @section scripts {
-    <!-- Thư viện SortableJS cho Kéo Thả -->
+    <!-- SortableJS cho Kéo Thả -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function () {
+            const antiForgeryToken = $('input[name="__RequestVerificationToken"]').val();
+
             function updateCounts() {
                 $('#count-new').text($('#col-new .kanban-card').length);
                 $('#count-prep').text($('#col-prep .kanban-card').length);
@@ -220,9 +515,224 @@
             }
             updateCounts();
 
-            const antiForgeryToken = $('input[name="__RequestVerificationToken"]').val();
+            // Web Audio Ding-Dong Synthesizer (Không phụ thuộc file mp3 ngoài)
+            function playKitchenChime() {
+                try {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (!AudioContext) return;
+                    const ctx = new AudioContext();
 
-            // Khởi tạo Sortable cho các cột
+                    function playTone(freq, startTime, duration) {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, startTime);
+                        gain.gain.setValueAtTime(0.4, startTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(startTime);
+                        osc.stop(startTime + duration);
+                    }
+
+                    const now = ctx.currentTime;
+                    playTone(587.33, now, 0.4);       // D5 (Ding)
+                    playTone(880.00, now + 0.25, 0.8); // A5 (Dong)
+                } catch (e) {
+                    console.log('Audio chime error:', e);
+                }
+            }
+
+            $('#btnSoundTest, #btnTestSoundKds').on('click', function() {
+                playKitchenChime();
+            });
+
+            // ===== KDS MODE TOGGLE =====
+            function setKdsMode(active) {
+                if (active) {
+                    $('body').addClass('kds-mode');
+                    localStorage.setItem('tapfood_kds_mode', '1');
+                    // Tự động yêu cầu Fullscreen nếu được hỗ trợ
+                    if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+                        document.documentElement.requestFullscreen().catch(() => {});
+                    }
+                } else {
+                    $('body').removeClass('kds-mode');
+                    localStorage.removeItem('tapfood_kds_mode');
+                    if (document.exitFullscreen && document.fullscreenElement) {
+                        document.exitFullscreen().catch(() => {});
+                    }
+                }
+            }
+
+            if (localStorage.getItem('tapfood_kds_mode') === '1') {
+                setKdsMode(true);
+            }
+
+            $('#btnToggleKds').on('click', function () {
+                setKdsMode(true);
+            });
+
+            $('#btnExitKds').on('click', function () {
+                setKdsMode(false);
+            });
+
+            // Live Clock in KDS bar
+            setInterval(function() {
+                const now = new Date();
+                $('#kds-live-clock').text(now.toLocaleTimeString('vi-VN'));
+            }, 1000);
+
+            // ===== PREP TIME COUNTDOWN ENGINE =====
+            function updateCountdownTimers() {
+                $('.prep-timer-badge').each(function () {
+                    const badge = $(this);
+                    const orderTimeStr = badge.data('order-time');
+                    const prepMins = parseInt(badge.data('prep-mins')) || 15;
+                    if (!orderTimeStr) return;
+
+                    const orderTime = new Date(orderTimeStr);
+                    const targetTime = new Date(orderTime.getTime() + prepMins * 60000);
+                    const now = new Date();
+                    const diffMs = targetTime - now;
+
+                    const timerSpan = badge.find('.timer-countdown');
+
+                    if (diffMs <= 0) {
+                        const overdueSecs = Math.abs(Math.floor(diffMs / 1000));
+                        const overMins = Math.floor(overdueSecs / 60);
+                        const overSecs = overdueSecs % 60;
+                        timerSpan.text('Trễ +' + overMins + ':' + (overSecs < 10 ? '0' : '') + overSecs);
+                        badge.removeClass('warning').addClass('danger');
+                    } else {
+                        const totalSecs = Math.floor(diffMs / 1000);
+                        const mins = Math.floor(totalSecs / 60);
+                        const secs = totalSecs % 60;
+                        timerSpan.text((mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs);
+
+                        if (mins < 3) {
+                            badge.removeClass('warning').addClass('danger');
+                        } else if (mins < 6) {
+                            badge.removeClass('danger').addClass('warning');
+                        } else {
+                            badge.removeClass('danger warning');
+                        }
+                    }
+                });
+            }
+            setInterval(updateCountdownTimers, 1000);
+            updateCountdownTimers();
+
+            // ===== NHẬN ĐƠN NHANH KÈM PREP TIME =====
+            $(document).on('click', '.btn-quick-accept', function () {
+                const btn = $(this);
+                const maDon = btn.data('id');
+                const prepTime = btn.data('prep') || 15;
+
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Đang nhận...');
+
+                $.ajax({
+                    url: '@Url.Action("CapNhatTrangThaiAjax", "NhaHang")',
+                    type: 'POST',
+                    data: {
+                        maDon: maDon,
+                        trangThai: 'Đã xác nhận',
+                        prepTimePhut: prepTime,
+                        __RequestVerificationToken: antiForgeryToken
+                    },
+                    success: function (res) {
+                        if (res.success) {
+                            const card = $(`.kanban-card[data-id="${maDon}"]`);
+                            card.removeClass('status-new').addClass('status-prep');
+                            
+                            // Thêm timer và nút hoàn thành nếu chưa có
+                            card.find('.btn-group').replaceWith(`
+                                <button type="button" class="btn btn-sm btn-primary w-100 mt-2 fw-bold btn-mark-cooked" data-id="${maDon}">
+                                    <i class="bi bi-check2-circle"></i> Bếp xong món ➔ Gọi Shipper
+                                </button>
+                            `);
+                            
+                            if (card.find('.prep-timer-badge').length === 0) {
+                                card.find('.card-title').append(`
+                                    <div class="prep-timer-badge" data-order-time="${new Date().toISOString()}" data-prep-mins="${prepTime}">
+                                        <i class="bi bi-stopwatch"></i> <span class="timer-countdown">${prepTime}:00</span>
+                                    </div>
+                                `);
+                            }
+
+                            $('#col-prep').prepend(card);
+                            updateCounts();
+                            updateCountdownTimers();
+
+                            Swal.fire({
+                                toast: true,
+                                position: 'bottom-end',
+                                icon: 'success',
+                                title: `Đã nhận đơn #${maDon} (${prepTime} phút)`,
+                                showConfirmButton: false,
+                                timer: 2500
+                            });
+                        } else {
+                            Swal.fire('Lỗi', res.message, 'error');
+                            btn.prop('disabled', false).html('<i class="bi bi-check-lg"></i> Nhận làm');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ.', 'error');
+                        btn.prop('disabled', false).html('<i class="bi bi-check-lg"></i> Nhận làm');
+                    }
+                });
+            });
+
+            // ===== BẾP ĐÃ NẤU XONG (MARK AS READY) =====
+            $(document).on('click', '.btn-mark-cooked', function () {
+                const btn = $(this);
+                const maDon = btn.data('id');
+
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Đang gọi Shipper...');
+
+                $.ajax({
+                    url: '@Url.Action("CapNhatTrangThaiAjax", "NhaHang")',
+                    type: 'POST',
+                    data: {
+                        maDon: maDon,
+                        trangThai: 'Đang lấy món',
+                        __RequestVerificationToken: antiForgeryToken
+                    },
+                    success: function (res) {
+                        if (res.success) {
+                            const card = $(`.kanban-card[data-id="${maDon}"]`);
+                            card.removeClass('status-prep').addClass('status-ready');
+                            btn.remove();
+                            
+                            if (card.find('.card-shipper').length === 0) {
+                                card.find('.card-customer').after('<div class="card-shipper mt-1"><i class="bi bi-box-seam"></i> Đang tìm Shipper...</div>');
+                            }
+
+                            $('#col-ready').prepend(card);
+                            updateCounts();
+
+                            Swal.fire({
+                                toast: true,
+                                position: 'bottom-end',
+                                icon: 'success',
+                                title: `Đã báo xong món đơn #${maDon}! Đang điều phối Shipper.`,
+                                showConfirmButton: false,
+                                timer: 3000
+                            });
+                        } else {
+                            Swal.fire('Lỗi', res.message, 'error');
+                            btn.prop('disabled', false).html('<i class="bi bi-check2-circle"></i> Bếp xong món ➔ Gọi Shipper');
+                        }
+                    },
+                    error: function () {
+                        Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ.', 'error');
+                        btn.prop('disabled', false).html('<i class="bi bi-check2-circle"></i> Bếp xong món ➔ Gọi Shipper');
+                    }
+                });
+            });
+
+            // ===== KHỞI TẠO SORTABLE KÉO THẢ GIỮA CÁC CỘT =====
             const columns = ['col-new', 'col-prep', 'col-ready', 'col-done'];
             columns.forEach(col => {
                 new Sortable(document.getElementById(col), {
@@ -230,29 +740,28 @@
                     animation: 150,
                     ghostClass: 'sortable-ghost',
                     onEnd: function (evt) {
-                        const itemEl = evt.item;  // Thẻ vừa kéo
-                        const toList = evt.to;    // Cột đích
-                        const fromList = evt.from; // Cột nguồn
+                        const itemEl = evt.item;
+                        const toList = evt.to;
+                        const fromList = evt.from;
                         
-                        if (toList === fromList) return; // Không đổi cột
+                        if (toList === fromList) return;
 
                         const maDon = itemEl.getAttribute('data-id');
                         const newStatus = toList.getAttribute('data-status');
 
-                        // Cập nhật class viền thẻ
                         $(itemEl).removeClass('status-new status-prep status-ready status-done');
                         if(newStatus === "Chờ xác nhận") $(itemEl).addClass('status-new');
                         if(newStatus === "Đã xác nhận") $(itemEl).addClass('status-prep');
                         if(newStatus === "Đang lấy món") $(itemEl).addClass('status-ready');
                         if(newStatus === "Hoàn thành") $(itemEl).addClass('status-done');
 
-                        // Cập nhật Database qua AJAX
                         $.ajax({
                             url: '@Url.Action("CapNhatTrangThaiAjax", "NhaHang")',
                             type: 'POST',
                             data: {
                                 maDon: maDon,
                                 trangThai: newStatus,
+                                prepTimePhut: 15,
                                 __RequestVerificationToken: antiForgeryToken
                             },
                             success: function(res) {
@@ -270,7 +779,6 @@
                                     });
                                 } else {
                                     Swal.fire('Lỗi', res.message, 'error');
-                                    // Hoàn tác kéo thả
                                     fromList.appendChild(itemEl);
                                 }
                             },
@@ -283,35 +791,24 @@
                 });
             });
 
-            // Tự động làm mới danh sách (Polling giống phiên bản cũ)
-            setInterval(function() {
-                var tuNgay = $('input[name="tuNgay"]').val();
-                var denNgay = $('input[name="denNgay"]').val();
+            // ===== LẮNG NGHE SIGNALR ĐƠN HÀNG MỚI =====
+            $(document).on('newOrderReceived', function(e, message) {
+                playKitchenChime();
                 
-                $.get('@Url.Action("GetDanhSachDonHangUpdate", "NhaHang")', { tuNgay: tuNgay, denNgay: denNgay }, function(res) {
-                    if (res.success && res.orders) {
-                        // So sánh số lượng đơn để biết có đơn mới
-                        let totalCurrent = $('.kanban-card').length;
-                        let totalNew = res.orders.length;
-                        if (totalNew > totalCurrent) {
-                            // Phát âm thanh
-                            var audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-                            audio.play().catch(e => {});
-                            
-                            Swal.fire({
-                                toast: true,
-                                position: 'top-end',
-                                icon: 'info',
-                                title: 'Bạn có đơn hàng mới!',
-                                showConfirmButton: false,
-                                timer: 3000
-                            }).then(() => {
-                                window.location.reload();
-                            });
-                        }
-                    }
+                Swal.fire({
+                    title: '🔔 CÓ ĐƠN HÀNG MỚI!',
+                    text: message || 'Vui lòng kiểm tra màn hình bếp để chuẩn bị món.',
+                    icon: 'info',
+                    confirmButtonText: 'Xem ngay',
+                    confirmButtonColor: '#ff5a2b'
+                }).then(() => {
+                    window.location.reload();
                 });
-            }, 15000);
+
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            });
         });
     </script>
 }

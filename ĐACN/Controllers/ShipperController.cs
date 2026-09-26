@@ -11,12 +11,13 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
 using System.Web.Mvc;
+using System.Threading.Tasks;
 
 namespace ĐACN.Controllers
 {
     public class ShipperController : BaseController
     {
-        private const string ORS_API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImFhZWYwMjY0NjIzZTRmNGU4MTE2NGQzYzlmZjJkYTYxIiwiaCI6Im11cm11cjY0In0=";
+        // ORS_API_KEY is inherited from BaseController (loaded from Web.config)
 
 
 
@@ -71,28 +72,36 @@ namespace ĐACN.Controllers
         {
             try
             {
-                using (var client = new HttpClient())
+                string startParam = $"{startLng.ToString(CultureInfo.InvariantCulture)},{startLat.ToString(CultureInfo.InvariantCulture)}";
+                string endParam = $"{endLng.ToString(CultureInfo.InvariantCulture)},{endLat.ToString(CultureInfo.InvariantCulture)}";
+                var url = $"https://api.openrouteservice.org/v2/directions/driving-car?start={startParam}&end={endParam}";
+
+                var json = Task.Run(async () =>
                 {
-                    client.DefaultRequestHeaders.Add("Authorization", ORS_API_KEY);
-                    string startParam = $"{startLng.ToString(CultureInfo.InvariantCulture)},{startLat.ToString(CultureInfo.InvariantCulture)}";
-                    string endParam = $"{endLng.ToString(CultureInfo.InvariantCulture)},{endLat.ToString(CultureInfo.InvariantCulture)}";
-                    var url = $"https://api.openrouteservice.org/v2/directions/driving-car?start={startParam}&end={endParam}";
+                    using (var request = new HttpRequestMessage(HttpMethod.Get, url))
+                    {
+                        request.Headers.TryAddWithoutValidation("Authorization", ORS_API_KEY);
+                        var response = await _sharedHttpClient.SendAsync(request).ConfigureAwait(false);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        }
+                    }
+                    return null;
+                }).GetAwaiter().GetResult();
 
-                    var response = client.GetAsync(url).Result;
-                    if (!response.IsSuccessStatusCode) return null;
+                if (string.IsNullOrEmpty(json)) return null;
 
-                    var json = response.Content.ReadAsStringAsync().Result;
-                    var obj = JObject.Parse(json);
-                    var features = obj["features"] as JArray;
-                    if (features == null || features.Count == 0) return null;
+                var obj = JObject.Parse(json);
+                var features = obj["features"] as JArray;
+                if (features == null || features.Count == 0) return null;
 
-                    var coords = features[0]["geometry"]["coordinates"];
-                    var summary = features[0]["properties"]["summary"];
-                    var routeList = new List<object>();
-                    foreach (var c in coords) routeList.Add(new { lat = c[1].Value<double>(), lng = c[0].Value<double>() });
+                var coords = features[0]["geometry"]["coordinates"];
+                var summary = features[0]["properties"]["summary"];
+                var routeList = new List<object>();
+                foreach (var c in coords) routeList.Add(new { lat = c[1].Value<double>(), lng = c[0].Value<double>() });
 
-                    return new { route = routeList, distance = summary["distance"].Value<double>(), duration = summary["duration"].Value<double>() };
-                }
+                return new { route = routeList, distance = summary["distance"].Value<double>(), duration = summary["duration"].Value<double>() };
             }
             catch { return null; }
         }
@@ -101,32 +110,40 @@ namespace ĐACN.Controllers
         {
             try
             {
-                using (var client = new HttpClient())
+                string coordinates = $"{startLng.ToString(CultureInfo.InvariantCulture)},{startLat.ToString(CultureInfo.InvariantCulture)};{endLng.ToString(CultureInfo.InvariantCulture)},{endLat.ToString(CultureInfo.InvariantCulture)}";
+                string url = $"http://router.project-osrm.org/route/v1/driving/{coordinates}?overview=full&geometries=geojson";
+
+                var json = Task.Run(async () =>
                 {
-                    client.DefaultRequestHeaders.Add("User-Agent", "TapFoodDeliveryApp/1.0");
-                    string coordinates = $"{startLng.ToString(CultureInfo.InvariantCulture)},{startLat.ToString(CultureInfo.InvariantCulture)};{endLng.ToString(CultureInfo.InvariantCulture)},{endLat.ToString(CultureInfo.InvariantCulture)}";
-                    string url = $"http://router.project-osrm.org/route/v1/driving/{coordinates}?overview=full&geometries=geojson";
-                    client.Timeout = TimeSpan.FromSeconds(5);
-                    var response = client.GetAsync(url).Result;
-                    if (!response.IsSuccessStatusCode) return null;
-
-                    var json = response.Content.ReadAsStringAsync().Result;
-                    var obj = JObject.Parse(json);
-                    if (obj["routes"] == null || !obj["routes"].Any()) return null;
-
-                    var routeData = obj["routes"][0];
-                    var geometry = routeData["geometry"]["coordinates"];
-                    var distance = routeData["distance"].Value<double>();
-                    var duration = routeData["duration"].Value<double>();
-
-                    var routePoints = new List<object>();
-                    foreach (var point in geometry)
+                    using (var request = new HttpRequestMessage(HttpMethod.Get, url))
                     {
-                        routePoints.Add(new { lat = point[1].Value<double>(), lng = point[0].Value<double>() });
+                        request.Headers.TryAddWithoutValidation("User-Agent", "TapFoodDeliveryApp/1.0");
+                        var response = await _sharedHttpClient.SendAsync(request).ConfigureAwait(false);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        }
                     }
+                    return null;
+                }).GetAwaiter().GetResult();
 
-                    return new { route = routePoints, distance = distance, duration = duration };
+                if (string.IsNullOrEmpty(json)) return null;
+
+                var obj = JObject.Parse(json);
+                if (obj["routes"] == null || !obj["routes"].Any()) return null;
+
+                var routeData = obj["routes"][0];
+                var geometry = routeData["geometry"]["coordinates"];
+                var distance = routeData["distance"].Value<double>();
+                var duration = routeData["duration"].Value<double>();
+
+                var routePoints = new List<object>();
+                foreach (var point in geometry)
+                {
+                    routePoints.Add(new { lat = point[1].Value<double>(), lng = point[0].Value<double>() });
                 }
+
+                return new { route = routePoints, distance = distance, duration = duration };
             }
             catch { return null; }
         }
@@ -243,9 +260,11 @@ namespace ĐACN.Controllers
                               .OrderByDescending(d => d.ThoiGianDat)
                               .ToList();
 
+            var chiTietLookup = chiTietMonAn.ToLookup(m => m.MaDon);
+
             foreach (var order in orders)
             {
-                var monAnTrongDon = chiTietMonAn.Where(m => m.MaDon == order.MaDon).ToList();
+                var monAnTrongDon = chiTietLookup[order.MaDon].ToList();
                 order.SoLuongMon = monAnTrongDon.Sum(m => m.SoLuong ?? 0);
                 order.DanhSachMonTomTat = string.Join(", ", monAnTrongDon
                     .GroupBy(m => m.TenMon)
@@ -325,9 +344,11 @@ namespace ĐACN.Controllers
                 .OrderByDescending(d => d.ThoiGianDat)
                 .ToList();
 
+            var chiTietLookup = chiTietMonAnData.ToLookup(m => m.MaDon);
+
             foreach (var order in orders)
             {
-                var monAnTrongDon = chiTietMonAnData.Where(m => m.MaDon == order.MaDon).ToList();
+                var monAnTrongDon = chiTietLookup[order.MaDon].ToList();
                 order.SoLuongMon = monAnTrongDon.Sum(m => m.SoLuong);
                 order.DanhSachMonTomTat = string.Join(", ", monAnTrongDon
                     .GroupBy(m => m.TenMon)
@@ -533,47 +554,49 @@ namespace ĐACN.Controllers
 
             if (don != null && string.IsNullOrEmpty(don.MaShipper))
             {
-                using (var transaction = db.Database.BeginTransaction())
+                try
                 {
-                    try
-                    {
-                        var donCheck = db.DonHangs.FirstOrDefault(d => d.MaDon == maDon && string.IsNullOrEmpty(d.MaShipper) && d.TrangThai != "Đã hủy" && d.TrangThai != "Hủy");
-                        if (donCheck != null)
-                        {
-                            donCheck.MaShipper = shipper.MaShipper;
-                            db.SaveChanges();
-                            transaction.Commit();
+                    // Cập nhật nguyên tử (Atomic Update) trực tiếp vào SQL Server để chống Race Condition khi nhiều shipper cùng nhận
+                    int affectedRows = db.Database.ExecuteSqlCommand(
+                        "UPDATE DonHang SET MaShipper = @p0, TrangThai = CASE WHEN TrangThai IN (N'Chờ xác nhận', N'Đã xác nhận') THEN N'Đang lấy món' ELSE TrangThai END " +
+                        "WHERE MaDon = @p1 AND (MaShipper IS NULL OR MaShipper = '') AND TrangThai NOT IN (N'Đã hủy', N'Hủy')",
+                        shipper.MaShipper, maDon);
 
-                            // SignalR Notification
-                            try
-                            {
-                                var context = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<ĐACN.Hubs.DeliveryHub>();
-                                context.Clients.Group("NhaHang_" + donCheck.MaNH).notifyNewOrder($"Shipper {shipper.TenShipper} đã nhận giao đơn hàng {maDon}");
-                                context.Clients.Group("KhachHang_" + donCheck.MaKH).notifyNewOrder($"Shipper {shipper.TenShipper} đang trên đường đến nhà hàng lấy đơn {maDon}");
-                            }
-                            catch { }
-
-                            TempData["Message"] = "Bạn đã nhận đơn thành công.";
-                        }
-                        else
-                        {
-                            transaction.Rollback();
-                            TempData["Message"] = "Đơn đã được nhận bởi shipper khác.";
-                        }
-                    }
-                    catch (Exception ex)
+                    if (affectedRows > 0)
                     {
-                        transaction.Rollback();
-                        TempData["Message"] = "Lỗi khi nhận đơn: " + ex.Message;
+                        // Đồng bộ lại entity trong DbContext
+                        db.Entry(don).Reload();
+
+                        // SignalR Notification
+                        try
+                        {
+                            var context = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<ĐACN.Hubs.DeliveryHub>();
+                            context.Clients.Group("NhaHang_" + don.MaNH).notifyNewOrder($"Shipper {shipper.TenShipper} đã nhận giao đơn hàng {maDon}");
+                            context.Clients.Group("KhachHang_" + don.MaKH).notifyNewOrder($"Shipper {shipper.TenShipper} đang trên đường đến nhà hàng lấy đơn {maDon}");
+                        }
+                        catch { }
+
+                        TempData["Message"] = "Bạn đã nhận đơn thành công.";
+                        return RedirectToAction("Accepted");
                     }
+                    else
+                    {
+                        TempData["Message"] = "Đơn đã được nhận bởi shipper khác hoặc không còn khả dụng.";
+                        return RedirectToAction("Index");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogError(ex, "Shipper.Accept");
+                    TempData["Message"] = "Lỗi khi nhận đơn. Vui lòng thử lại sau.";
+                    return RedirectToAction("Index");
                 }
             }
             else
             {
                 TempData["Message"] = "Đơn đã được nhận bởi shipper khác hoặc không tồn tại.";
+                return RedirectToAction("Index");
             }
-
-            return RedirectToAction("Accepted");
         }
 
         [HttpPost]
@@ -619,6 +642,9 @@ namespace ĐACN.Controllers
             if (trangThai.Equals("Hoàn thành", StringComparison.OrdinalIgnoreCase))
             {
                 RealTimeLocationService.ClearLocation(shipper.MaShipper);
+                decimal donShipFee = don.ShipFee ?? 15000m;
+                shipper.ThuNhap = (shipper.ThuNhap ?? 0) + donShipFee;
+                db.Entry(shipper).State = EntityState.Modified;
             }
 
             db.SaveChanges();
@@ -670,13 +696,31 @@ namespace ĐACN.Controllers
                 return RedirectToAction("Accepted");
             }
 
+            if (don.TrangThai == "Đang giao" || don.TrangThai == "Hoàn thành")
+            {
+                TempData["Message"] = "Không thể hủy đơn khi đơn hàng đang giao hoặc đã hoàn thành.";
+                return RedirectToAction("Accepted");
+            }
+
+            string previousMaNH = don.MaNH;
+            string previousMaKH = don.MaKH;
             don.MaShipper = null;
-            don.TrangThai = "Chờ xác nhận";
+            don.TrangThai = "Đã xác nhận";
             db.SaveChanges();
 
             RealTimeLocationService.ClearLocation(shipper.MaShipper);
 
-            TempData["Message"] = "Đã hủy nhận đơn. Đơn đã quay lại danh sách chờ.";
+            // Tái điều phối cho các shipper khác
+            try
+            {
+                ĐACN.Services.OrderDispatcher.DispatchOrder(maDon, previousMaNH);
+                var context = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<ĐACN.Hubs.DeliveryHub>();
+                context.Clients.Group("NhaHang_" + previousMaNH).notifyNewOrder($"Shipper {shipper.TenShipper} đã hủy nhận đơn {maDon}. Hệ thống đang tìm shipper khác.");
+                context.Clients.Group("KhachHang_" + previousMaKH).notifyNewOrder($"Đơn hàng {maDon} đang được điều phối lại shipper.");
+            }
+            catch { }
+
+            TempData["Message"] = "Đã hủy nhận đơn. Hệ thống đang tìm shipper khác cho đơn hàng.";
             return RedirectToAction("Accepted");
         }
 

@@ -1,4 +1,4 @@
-@model ĐACN.NhaHang
+﻿@model ĐACN.NhaHang
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
     ViewBag.Title = "Đánh giá nhà hàng";
@@ -6,97 +6,33 @@
 }
 
 <style>
-    body {
-        background-color: #f8f9fa;
-    }
-    .review-container {
-        max-width: 650px;
-        margin: 40px auto;
-        position: relative;
-    }
-    .card-review {
-        border: none;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
-        border-radius: 1.25rem;
-        background: #ffffff;
-        overflow: hidden;
-    }
-    .card-review-header {
-        background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
-        color: white;
-        padding: 2rem 1.5rem;
-        text-align: center;
-        border-radius: 1.25rem 1.25rem 0 0;
-    }
-    .avatar-lg {
-        width: 100px;
-        height: 100px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 4px solid #fff;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        margin-top: -50px;
-        background: #fff;
-    }
-    .rating-star {
-        font-size: 2.5rem;
-        color: #e2e8f0;
-        cursor: pointer;
-        transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        display: inline-block;
-        margin: 0 4px;
-    }
-    .rating-star:hover {
-        transform: scale(1.2);
-    }
-    .rating-star.selected {
-        color: #ffc107;
-        filter: drop-shadow(0 2px 4px rgba(255, 193, 7, 0.3));
-    }
-    .rating-star.selected.pop {
-        animation: popStar 0.4s ease-out;
-    }
-    @@keyframes popStar {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.3); }
-        100% { transform: scale(1); }
-    }
-    .form-control.review-textarea {
-        border-radius: 0.75rem;
-        border: 2px solid #e2e8f0;
-        padding: 1rem;
-        background-color: #f8f9fa;
-        transition: all 0.3s ease;
-    }
-    .form-control.review-textarea:focus {
-        background-color: #fff;
-        border-color: #0d6efd;
-        box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
-    }
-    .btn-action {
-        border-radius: 0.75rem;
-        font-weight: 600;
-        padding: 0.75rem 1.5rem;
-        transition: all 0.3s ease;
-    }
-    .btn-action:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(25, 135, 84, 0.3);
-    }
-    .btn-back {
-        border-radius: 0.75rem;
-        font-weight: 600;
-        padding: 0.75rem 1.5rem;
-        transition: all 0.3s ease;
-        border: 2px solid #e2e8f0;
-        color: #6c757d;
-        text-decoration: none;
-    }
-    .btn-back:hover {
-        background-color: #f8f9fa;
-        color: #495057;
-    }
+    body { background: #f8f9fa; font-family: 'Inter', sans-serif; }
+    .card { border: 1px solid rgba(0,0,0,0.07) !important; border-radius: 1rem !important; box-shadow: 0 4px 16px rgba(0,0,0,0.06) !important; }
+    .card-header { border-bottom: 1px solid rgba(0,0,0,0.06) !important; background: #fff !important; }
+    h4.fw-bold, h5.fw-bold, h3.fw-bold { color: #1a202c !important; }
+    .text-muted { color: #718096 !important; }
+    .btn-primary { background: linear-gradient(135deg, #ff5a2b, #ff9f1c) !important; border: none !important; border-radius: 0.75rem !important; font-weight: 700 !important; color: #fff !important; }
+    .btn-primary:hover { box-shadow: 0 6px 18px rgba(255,90,43,0.35) !important; }
+    .btn-success { background: linear-gradient(135deg, #22c55e, #16a34a) !important; border: none !important; border-radius: 0.75rem !important; font-weight: 700 !important; }
+    .btn-danger  { background: linear-gradient(135deg, #ef4444, #dc2626) !important; border: none !important; border-radius: 0.75rem !important; font-weight: 700 !important; }
+    .btn-secondary { border-radius: 0.75rem !important; font-weight: 600 !important; }
+    .form-control, .form-select { border-radius: 0.75rem !important; border: 1.5px solid #e2e8f0 !important; background: #f7fafc !important; color: #2d3748 !important; transition: all 0.2s; }
+    .form-control:focus, .form-select:focus { background: #fff !important; border-color: #ff5a2b !important; box-shadow: 0 0 0 3px rgba(255,90,43,0.12) !important; }
+    .table thead th { background: #f8fafc !important; color: #64748b; font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 2px solid #e2e8f0 !important; }
+    .table tbody tr:hover { background: #fffaf8 !important; }
+    .table td { border-color: #f0f2f5 !important; vertical-align: middle; }
+    .badge.bg-success { background: linear-gradient(135deg, #22c55e, #16a34a) !important; color: #fff !important; }
+    .badge.bg-danger  { background: linear-gradient(135deg, #ef4444, #dc2626) !important; color: #fff !important; }
+    .badge.bg-warning { background: linear-gradient(135deg, #f59e0b, #d97706) !important; color: #fff !important; }
+    .badge.bg-info    { background: linear-gradient(135deg, #3b82f6, #2563eb) !important; color: #fff !important; }
+    .alert { border-radius: 0.85rem !important; }
+    .alert-success { background: #d1fae5 !important; color: #065f46 !important; border: 1px solid #a7f3d0 !important; }
+    .alert-danger  { background: #fee2e2 !important; color: #991b1b !important; border: 1px solid #fecaca !important; }
+    .alert-info    { background: #dbeafe !important; color: #1e40af !important; border: 1px solid #93c5fd !important; }
+    .alert-warning { background: #fef3c7 !important; color: #92400e !important; border: 1px solid #fde68a !important; }
+    label { color: #4a5568 !important; font-weight: 600; }
 </style>
+
 
 <div class="container mb-5">
     <div class="review-container">

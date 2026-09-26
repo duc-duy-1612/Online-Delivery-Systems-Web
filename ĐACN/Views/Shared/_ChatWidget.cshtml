@@ -177,7 +177,7 @@
     <script src="~/signalr/hubs"></script>
     <script>
         var currentUserId = '@currentUserId';
-        var currentUserName = '@Html.Raw(currentUserName)';
+        var currentUserName = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(currentUserName ?? ""));
         var activeChatPartnerId = '';
         var activeChatMaDon = '';
         

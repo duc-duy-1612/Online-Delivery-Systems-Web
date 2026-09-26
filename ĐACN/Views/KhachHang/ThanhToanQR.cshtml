@@ -1,118 +1,36 @@
-@{
+﻿@{
     ViewBag.Title = "Thanh toán chuyển khoản";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 <style>
-    body {
-        background-color: #f8f9fa;
-    }
-    .payment-receipt {
-        border: none;
-        border-radius: 1rem 1rem 0 0;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-        background: #fff;
-        position: relative;
-        overflow: hidden;
-    }
-    /* Jagged edge effect for receipt */
-    .receipt-edge {
-        height: 15px;
-        background: linear-gradient(-45deg, transparent 10px, #fff 0), linear-gradient(45deg, transparent 10px, #fff 0);
-        background-repeat: repeat-x;
-        background-size: 20px 20px;
-        background-position: left bottom;
-        filter: drop-shadow(0px 10px 10px rgba(0,0,0,0.05));
-        margin-bottom: 2rem;
-    }
-    .payment-header {
-        background: linear-gradient(135deg, #0d6efd 0%, #0dcaf0 100%);
-        color: white;
-        padding: 25px 20px;
-        text-align: center;
-        border-radius: 1rem 1rem 0 0;
-        position: relative;
-    }
-    .payment-header::after {
-        content: '';
-        position: absolute;
-        bottom: -15px;
-        left: 0;
-        right: 0;
-        height: 30px;
-        background: #fff;
-        border-radius: 50% 50% 0 0;
-    }
-    .amount-text {
-        color: #dc3545;
-        font-size: 2.2rem;
-        font-weight: 800;
-        letter-spacing: -1px;
-    }
-    .qr-frame {
-        background-color: #fff;
-        padding: 15px;
-        border: 2px dashed #0d6efd;
-        border-radius: 1rem;
-        display: inline-block;
-        margin: 20px 0;
-        position: relative;
-        animation: pulse-border 2s infinite;
-    }
-    @@keyframes pulse-border {
-        0% { border-color: rgba(13, 110, 253, 0.4); box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.4); }
-        70% { border-color: rgba(13, 110, 253, 1); box-shadow: 0 0 0 15px rgba(13, 110, 253, 0); }
-        100% { border-color: rgba(13, 110, 253, 0.4); box-shadow: 0 0 0 0 rgba(13, 110, 253, 0); }
-    }
-    .scanner-line {
-        position: absolute;
-        top: 15px;
-        left: 15px;
-        right: 15px;
-        height: 2px;
-        background: rgba(13, 110, 253, 0.8);
-        box-shadow: 0 0 10px rgba(13, 110, 253, 0.8);
-        animation: scan 3s linear infinite;
-    }
-    @@keyframes scan {
-        0% { top: 15px; opacity: 0; }
-        10% { opacity: 1; }
-        90% { opacity: 1; }
-        100% { top: calc(100% - 17px); opacity: 0; }
-    }
-    .bank-info {
-        background: rgba(248, 249, 250, 0.8);
-        border-radius: 0.75rem;
-        padding: 20px;
-        text-align: left;
-        margin-bottom: 20px;
-        font-size: 0.95rem;
-        border: 1px solid #e2e8f0;
-    }
-    .bank-info-row {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 8px;
-        border-bottom: 1px dashed #e2e8f0;
-        padding-bottom: 8px;
-    }
-    .bank-info-row:last-child {
-        margin-bottom: 0;
-        border-bottom: none;
-        padding-bottom: 0;
-    }
-    .btn-confirm {
-        background: linear-gradient(135deg, #198754 0%, #20c997 100%);
-        border: none;
-        color: white;
-        transition: all 0.3s ease;
-    }
-    .btn-confirm:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(25, 135, 84, 0.3);
-        color: white;
-    }
+    body { background: #f8f9fa; font-family: 'Inter', sans-serif; }
+    .card { border: 1px solid rgba(0,0,0,0.07) !important; border-radius: 1rem !important; box-shadow: 0 4px 16px rgba(0,0,0,0.06) !important; }
+    .card-header { border-bottom: 1px solid rgba(0,0,0,0.06) !important; background: #fff !important; }
+    h4.fw-bold, h5.fw-bold, h3.fw-bold { color: #1a202c !important; }
+    .text-muted { color: #718096 !important; }
+    .btn-primary { background: linear-gradient(135deg, #ff5a2b, #ff9f1c) !important; border: none !important; border-radius: 0.75rem !important; font-weight: 700 !important; color: #fff !important; }
+    .btn-primary:hover { box-shadow: 0 6px 18px rgba(255,90,43,0.35) !important; }
+    .btn-success { background: linear-gradient(135deg, #22c55e, #16a34a) !important; border: none !important; border-radius: 0.75rem !important; font-weight: 700 !important; }
+    .btn-danger  { background: linear-gradient(135deg, #ef4444, #dc2626) !important; border: none !important; border-radius: 0.75rem !important; font-weight: 700 !important; }
+    .btn-secondary { border-radius: 0.75rem !important; font-weight: 600 !important; }
+    .form-control, .form-select { border-radius: 0.75rem !important; border: 1.5px solid #e2e8f0 !important; background: #f7fafc !important; color: #2d3748 !important; transition: all 0.2s; }
+    .form-control:focus, .form-select:focus { background: #fff !important; border-color: #ff5a2b !important; box-shadow: 0 0 0 3px rgba(255,90,43,0.12) !important; }
+    .table thead th { background: #f8fafc !important; color: #64748b; font-weight: 700; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 2px solid #e2e8f0 !important; }
+    .table tbody tr:hover { background: #fffaf8 !important; }
+    .table td { border-color: #f0f2f5 !important; vertical-align: middle; }
+    .badge.bg-success { background: linear-gradient(135deg, #22c55e, #16a34a) !important; color: #fff !important; }
+    .badge.bg-danger  { background: linear-gradient(135deg, #ef4444, #dc2626) !important; color: #fff !important; }
+    .badge.bg-warning { background: linear-gradient(135deg, #f59e0b, #d97706) !important; color: #fff !important; }
+    .badge.bg-info    { background: linear-gradient(135deg, #3b82f6, #2563eb) !important; color: #fff !important; }
+    .alert { border-radius: 0.85rem !important; }
+    .alert-success { background: #d1fae5 !important; color: #065f46 !important; border: 1px solid #a7f3d0 !important; }
+    .alert-danger  { background: #fee2e2 !important; color: #991b1b !important; border: 1px solid #fecaca !important; }
+    .alert-info    { background: #dbeafe !important; color: #1e40af !important; border: 1px solid #93c5fd !important; }
+    .alert-warning { background: #fef3c7 !important; color: #92400e !important; border: 1px solid #fde68a !important; }
+    label { color: #4a5568 !important; font-weight: 600; }
 </style>
+
 
 <div class="container py-5">
     <div class="row justify-content-center">

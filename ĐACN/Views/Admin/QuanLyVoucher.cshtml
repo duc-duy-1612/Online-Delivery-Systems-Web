@@ -1,0 +1,335 @@
+﻿@model List<ĐACN.Models.Voucher>
+@{
+    ViewBag.Title = "Quản lý Voucher";
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+}
+
+<style>
+    .admin-card { border: 1px solid rgba(0,0,0,0.06); border-radius: 1rem; box-shadow: 0 4px 16px rgba(0,0,0,0.05); background: #fff; padding: 20px; margin-bottom: 20px; }
+    h2.fw-bold { color: #1a202c !important; }
+    .text-muted { color: #718096 !important; }
+    .btn-dark.btn-modern { background: linear-gradient(135deg, #ff5a2b, #ff9f1c) !important; border: none !important; border-radius: 0.75rem !important; font-weight: 700 !important; color: #fff !important; box-shadow: 0 4px 12px rgba(255,90,43,0.25); }
+    .btn-dark.btn-modern:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(255,90,43,0.35) !important; }
+    .btn-outline-dark { border-color: #e2e8f0 !important; color: #4a5568 !important; border-radius: 0.75rem !important; font-weight: 600; }
+    .btn-success { background: linear-gradient(135deg, #22c55e, #16a34a) !important; border: none !important; border-radius: 0.75rem !important; font-weight: 700 !important; }
+    .btn-danger  { background: linear-gradient(135deg, #ef4444, #dc2626) !important; border: none !important; border-radius: 0.75rem !important; font-weight: 700 !important; }
+    .btn-warning { border-radius: 0.75rem !important; font-weight: 700 !important; }
+    .form-control, .form-select { border-radius: 0.75rem !important; border: 1.5px solid #e2e8f0 !important; background: #f7fafc !important; color: #2d3748 !important; transition: all 0.2s; }
+    .form-control.bg-light { background: #f7fafc !important; border: 1.5px solid #e2e8f0 !important; }
+    .form-control:focus, .form-select:focus { background: #fff !important; border-color: #ff5a2b !important; box-shadow: 0 0 0 3px rgba(255,90,43,0.12) !important; }
+    .table thead th { background: #f8fafc !important; color: #64748b !important; font-weight: 700 !important; font-size: 0.75rem !important; text-transform: uppercase !important; letter-spacing: 0.06em !important; border-bottom: 2px solid #e2e8f0 !important; }
+    .table tbody tr:hover { background: #fffaf8 !important; }
+    .table td { border-color: #f0f2f5 !important; vertical-align: middle; }
+    .badge { border-radius: 8px !important; font-weight: 700; padding: 4px 10px; }
+    .badge.bg-success { background: linear-gradient(135deg, #22c55e, #16a34a) !important; color: #fff !important; }
+    .badge.bg-danger  { background: linear-gradient(135deg, #ef4444, #dc2626) !important; color: #fff !important; }
+    .badge.bg-warning { background: linear-gradient(135deg, #f59e0b, #d97706) !important; color: #fff !important; }
+    .badge.bg-info    { background: linear-gradient(135deg, #3b82f6, #2563eb) !important; color: #fff !important; }
+    .badge.bg-secondary { background: #94a3b8 !important; color: #fff !important; }
+    .alert { border-radius: 0.85rem !important; }
+    .alert-success { background: #d1fae5 !important; color: #065f46 !important; border: 1px solid #a7f3d0 !important; }
+    .alert-danger  { background: #fee2e2 !important; color: #991b1b !important; border: 1px solid #fecaca !important; }
+    .alert-info    { background: #dbeafe !important; color: #1e40af !important; border: 1px solid #93c5fd !important; }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1 text-dark fw-bold">Quản lý Voucher</h2>
+            <p class="text-muted mb-0">Tạo và quản lý các mã giảm giá cho hệ thống</p>
+        </div>
+        <button class="btn text-white px-4 py-2" onclick="openAddModal()" style="background-color: #ee4d2d; border-radius: 8px;">
+            <i class="fas fa-plus me-2"></i>Thêm Voucher mới
+        </button>
+    </div>
+
+    <div class="card shadow-sm border-0" style="border-radius: 12px;">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4 py-3">Mã Voucher</th>
+                            <th class="py-3">Loại</th>
+                            <th class="py-3">Chi tiết giảm</th>
+                            <th class="py-3">Đơn tối thiểu</th>
+                            <th class="py-3">Trạng thái</th>
+                            <th class="text-end pe-4 py-3">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model == null || !Model.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">Không có voucher nào.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var v in Model)
+                            {
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="p-2 rounded me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background-color: rgba(238,77,45,0.1); color: #ee4d2d;">
+                                                <i class="fas @(v.LoaiVoucher == "Ship" ? "fa-truck" : "fa-utensils") fs-5"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-0 fw-bold text-dark">@v.MaVoucher</h6>
+                                                <small class="text-muted">@v.MoTa</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge @(v.LoaiVoucher == "Ship" ? "bg-success" : "bg-info") rounded-pill px-3">
+                                            @(v.LoaiVoucher == "Ship" ? "Freeship" : "Giảm Món")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if(v.PhanTramGiam == 100)
+                                        {
+                                            <span class="fw-bold text-danger">Giảm @v.GiamToiDa.ToString("#,0")đ</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="fw-bold text-danger">Giảm @v.PhanTramGiam%</span>
+                                            <br />
+                                            <small class="text-muted">Tối đa @v.GiamToiDa.ToString("#,0")đ</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold text-dark">@v.DieuKienToiThieu.ToString("#,0")đ</span>
+                                    </td>
+                                    <td>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" role="switch" style="cursor:pointer;" 
+                                                   @(v.IsActive ? "checked" : "") 
+                                                   onchange="toggleStatus('@v.MaVoucher', this)">
+                                        </div>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <button class="btn btn-sm btn-outline-secondary me-2" onclick='openEditModal(@Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(v)))'>
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteVoucher('@v.MaVoucher')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thêm/Sửa Voucher -->
+<div class="modal fade" id="voucherModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 12px;">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold" id="modalTitle">Thêm Voucher Mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="frmVoucher">
+                    <input type="hidden" id="isEdit" value="false" />
+                    <input type="hidden" id="oldMaVoucher" value="" />
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Mã Voucher</label>
+                        <input type="text" class="form-control" id="txtMaVoucher" placeholder="VD: TAPFOOD50, FREESHIP..." required style="text-transform: uppercase;">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Loại Voucher</label>
+                        <select class="form-select" id="selLoaiVoucher" required>
+                            <option value="Mon">Giảm giá món ăn</option>
+                            <option value="Ship">Miễn phí vận chuyển (Freeship)</option>
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-bold">% Giảm</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="txtPhanTram" min="1" max="100" value="10" required>
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <small class="text-muted">Nhập 100 nếu muốn trừ thẳng tiền mặt</small>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-bold">Giảm tối đa</label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" id="txtGiamToiDa" min="0" value="50000" required>
+                                <span class="input-group-text">đ</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Đơn tối thiểu</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="txtDieuKien" min="0" value="0" required>
+                            <span class="input-group-text">đ</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Mô tả ngắn</label>
+                        <input type="text" class="form-control" id="txtMoTa" placeholder="VD: Giảm 50% (tối đa 50K) cho mọi đơn" required>
+                    </div>
+                    
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" role="switch" id="chkActive" checked>
+                        <label class="form-check-label" for="chkActive">Kích hoạt ngay</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-top-0 pt-0">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn text-white px-4" id="btnSave" style="background-color: #ee4d2d;">Lưu Voucher</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var voucherModal;
+
+        $(document).ready(function () {
+            if(typeof bootstrap !== 'undefined') {
+                voucherModal = new bootstrap.Modal(document.getElementById('voucherModal'));
+            }
+            
+            $("#btnSave").click(function () {
+                if (!$("#frmVoucher")[0].checkValidity()) {
+                    $("#frmVoucher")[0].reportValidity();
+                    return;
+                }
+
+                var data = {
+                    MaVoucher: $("#txtMaVoucher").val().trim().toUpperCase(),
+                    LoaiVoucher: $("#selLoaiVoucher").val(),
+                    PhanTramGiam: parseInt($("#txtPhanTram").val()),
+                    GiamToiDa: parseFloat($("#txtGiamToiDa").val()),
+                    DieuKienToiThieu: parseFloat($("#txtDieuKien").val()),
+                    MoTa: $("#txtMoTa").val().trim(),
+                    IsActive: $("#chkActive").is(":checked")
+                };
+
+                var isEdit = $("#isEdit").val() === "true";
+                var oldMaVoucher = $("#oldMaVoucher").val();
+
+                let btn = $(this);
+                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
+
+                $.ajax({
+                    url: '/Admin/LuuVoucher',
+                    type: 'POST',
+                    data: { v: data, isEdit: isEdit, oldMaVoucher: oldMaVoucher },
+                    success: function (res) {
+                        btn.prop('disabled', false).text('Lưu Voucher');
+                        if (res.success) {
+                            Swal.fire({ icon: 'success', title: 'Thành công', text: res.message, timer: 1500, showConfirmButton: false }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Lỗi', res.message, 'error');
+                        }
+                    },
+                    error: function () {
+                        btn.prop('disabled', false).text('Lưu Voucher');
+                        Swal.fire('Lỗi', 'Lỗi kết nối server', 'error');
+                    }
+                });
+            });
+        });
+
+        function openAddModal() {
+            $("#isEdit").val("false");
+            $("#oldMaVoucher").val("");
+            $("#modalTitle").text("Thêm Voucher Mới");
+            $("#txtMaVoucher").val("").prop("readonly", false);
+            $("#selLoaiVoucher").val("Mon");
+            $("#txtPhanTram").val("10");
+            $("#txtGiamToiDa").val("50000");
+            $("#txtDieuKien").val("0");
+            $("#txtMoTa").val("");
+            $("#chkActive").prop("checked", true);
+            if(voucherModal) voucherModal.show(); else $("#voucherModal").modal('show');
+        }
+
+        function openEditModal(v) {
+            $("#isEdit").val("true");
+            $("#oldMaVoucher").val(v.MaVoucher);
+            $("#modalTitle").text("Chỉnh sửa Voucher");
+            $("#txtMaVoucher").val(v.MaVoucher).prop("readonly", false); // Bỏ readonly để sửa được mã
+            $("#selLoaiVoucher").val(v.LoaiVoucher);
+            $("#txtPhanTram").val(v.PhanTramGiam);
+            $("#txtGiamToiDa").val(v.GiamToiDa);
+            $("#txtDieuKien").val(v.DieuKienToiThieu);
+            $("#txtMoTa").val(v.MoTa);
+            $("#chkActive").prop("checked", v.IsActive);
+            if(voucherModal) voucherModal.show(); else $("#voucherModal").modal('show');
+        }
+
+        function deleteVoucher(ma) {
+            Swal.fire({
+                title: 'Xóa voucher này?',
+                text: "Bạn sẽ không thể khôi phục lại!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Đồng ý xóa!',
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/Admin/XoaVoucher',
+                        type: 'POST',
+                        data: { maVoucher: ma },
+                        success: function (res) {
+                            if (res.success) {
+                                Swal.fire({ icon: 'success', title: 'Đã xóa', text: res.message, timer: 1500, showConfirmButton: false }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire('Lỗi', res.message, 'error');
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        function toggleStatus(ma, el) {
+            let chk = $(el);
+            let currentState = chk.prop("checked");
+            
+            // Revert UI first, wait for AJAX
+            chk.prop("checked", !currentState);
+            
+            $.ajax({
+                url: '/Admin/ToggleTrangThaiVoucher',
+                type: 'POST',
+                data: { maVoucher: ma },
+                success: function (res) {
+                    if (res.success) {
+                        chk.prop("checked", currentState); // apply true state
+                    } else {
+                        Swal.fire('Lỗi', res.message, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Lỗi', 'Lỗi kết nối', 'error');
+                }
+            });
+        }
+    </script>
+}
+

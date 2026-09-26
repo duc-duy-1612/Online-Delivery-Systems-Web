@@ -5,35 +5,53 @@
 }
 
 <style>
+    /* Antigravity Background Floating Orbs */
+    body::before, body::after {
+        content: '';
+        position: fixed;
+        width: 400px;
+        height: 400px;
+        border-radius: 50%;
+        filter: blur(100px);
+        z-index: -1;
+        opacity: 0.3;
+    }
+    body::before {
+        background: rgba(212, 175, 55, 0.15); /* Gold */
+        top: 10%;
+        left: -100px;
+        animation: floatOrb 12s infinite ease-in-out alternate;
+    }
+    body::after {
+        background: rgba(255, 255, 255, 0.05);
+        bottom: 10%;
+        right: -100px;
+        animation: floatOrb 15s infinite ease-in-out alternate-reverse;
+    }
+    @Html.Raw("@")keyframes floatOrb {
+        0% { transform: translate(0, 0) scale(1); }
+        100% { transform: translate(60px, 80px) scale(1.1); }
+    }
 
     .banner {
-        background: linear-gradient(135deg, rgba(30, 32, 36, 0.8) 0%, rgba(43, 47, 51, 0.9) 100%), url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070&auto=format&fit=crop');
+        background: linear-gradient(rgba(18, 20, 19, 0.7), rgba(18, 20, 19, 1)), url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&q=80');
         background-position: center;
         background-repeat: no-repeat;
         background-size: cover;
-        height: 480px;
+        background-attachment: fixed;
+        height: 70vh;
+        min-height: 500px;
         border-radius: 0 0 40px 40px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         position: relative;
         overflow: hidden;
-    }
-
-    /* Add a subtle glow behind banner */
-    .banner::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        left: -50%;
-        width: 200%;
-        height: 200%;
-        background: radial-gradient(circle, rgba(255, 90, 0, 0.1) 0%, transparent 60%);
-        pointer-events: none;
-        z-index: 0;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
     }
 
     .banner-overlay {
-        background: rgba(0, 0, 0, 0.4);
+        background: rgba(0, 0, 0, 0.2);
         height: 100%;
+        width: 100%;
         display: flex;
         justify-content: center;
         align-items: center;
@@ -43,166 +61,239 @@
     }
 
     .banner-content h1 {
-        font-size: 3.2rem;
+        font-size: clamp(2.4rem, 4vw, 3.8rem);
+        font-family: 'Playfair Display', serif;
         font-weight: 700;
-        color: #fff;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        color: var(--primary-color);
+        text-shadow: 2px 2px 10px rgba(0,0,0,0.8);
+        letter-spacing: 1px;
+        line-height: 1.25;
+        max-width: 960px;
+        margin: 0 auto;
+    }
+
+    .hero-trust-badges {
+        margin: 12px auto 20px auto;
+    }
+
+    .hero-badge-item {
+        background: rgba(28, 31, 30, 0.75);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(212, 175, 55, 0.35);
+        border-radius: 50px;
+        padding: 8px 22px 8px 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .hero-badge-item:hover {
+        transform: translateY(-3px);
+        border-color: var(--primary-color);
+        box-shadow: 0 12px 30px rgba(212, 175, 55, 0.25);
+    }
+
+    .hero-badge-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.05rem;
+    }
+
+    .hero-badge-icon.badge-bolt {
+        background: linear-gradient(135deg, #ff5a2b, #ff9f1c);
+        box-shadow: 0 4px 12px rgba(255, 90, 43, 0.35);
+    }
+
+    .hero-badge-icon.badge-shield {
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
+    }
+
+    .hero-badge-item .badge-sub {
+        font-size: 0.72rem;
+        color: #a0aec0;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        line-height: 1.1;
+    }
+
+    .hero-badge-item .badge-main {
+        font-weight: 700;
+        color: #f8f9fa;
+        font-size: 0.92rem;
+        line-height: 1.2;
     }
 
     .banner-content p {
-        font-size: 1.2rem;
+        font-size: 1.25rem;
         margin-top: 10px;
-        color: #fff;
+        color: var(--text-main);
+        font-weight: 300;
+        letter-spacing: 0.5px;
     }
 
     .search-bar {
         display: flex;
         justify-content: center;
         gap: 10px;
-        width: 80%;
-        max-width: 700px;
+        width: 90%;
+        max-width: 800px;
         margin: 0 auto;
     }
 
-        .search-bar input {
-            flex: 1;
-            padding: 15px 25px;
-            border-radius: 50px;
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.9);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-            font-size: 1.1rem;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-        
-        .search-bar input:focus {
-            background: #fff;
-            border-color: #ff5a00;
-            outline: none;
-            box-shadow: 0 10px 40px rgba(255, 90, 0, 0.2);
-        }
-        
-        .search-bar button {
-            border-radius: 50px;
-            padding: 0 35px;
-            font-weight: bold;
-            background: linear-gradient(135deg, #ff7e22, #ff5a00);
-            border: none;
-            color: white;
-            box-shadow: 0 4px 15px rgba(255, 90, 0, 0.4);
-            transition: all 0.3s ease;
-            animation: pulse-red 2s infinite;
-        }
-        
-        .search-bar button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 90, 0, 0.7);
-            animation: none;
-        }
+    .search-bar input {
+        flex: 1;
+        padding: 18px 30px;
+        border-radius: 50px;
+        border: 1px solid rgba(212, 175, 55, 0.3);
+        background: rgba(18, 20, 19, 0.7);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        font-size: 1.1rem;
+        transition: all 0.4s ease;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        color: var(--text-main);
+    }
+    .search-bar input::placeholder {
+        color: rgba(255,255,255,0.5);
+    }
+    .search-bar input:focus {
+        background: rgba(18, 20, 19, 0.9);
+        border-color: var(--primary-color);
+        outline: none;
+        box-shadow: 0 10px 40px rgba(212, 175, 55, 0.2);
+        color: var(--text-main);
+    }
+    
+    .search-bar button {
+        border-radius: 50px;
+        padding: 0 40px;
+        font-weight: bold;
+        background: var(--primary-color);
+        border: none;
+        color: var(--bg-dark);
+        box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+        transition: all 0.4s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .search-bar button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(212, 175, 55, 0.4);
+        background: var(--primary-light);
+    }
 
-        @@keyframes pulse-red {
-            0% { box-shadow: 0 0 0 0 rgba(255, 90, 0, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(255, 90, 0, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 90, 0, 0); }
-        }
-        
-        /* Live Search Dropdown */
-        .search-container {
-            position: relative;
-            width: 100%;
-        }
-        .live-search-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            width: 100%;
-            background: white;
-            border-radius: 15px;
-            margin-top: 10px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-            z-index: 1000;
-            max-height: 400px;
-            overflow-y: auto;
-            display: none;
-            text-align: left;
-        }
-        .live-search-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 20px;
-            border-bottom: 1px solid #f1f1f1;
-            text-decoration: none;
-            color: #333;
-            transition: background 0.2s;
-        }
-        .live-search-item:hover {
-            background: #f8f9fa;
-            color: #ff4b2b;
-        }
-        .live-search-item img {
-            width: 50px;
-            height: 50px;
-            border-radius: 10px;
-            object-fit: cover;
-            margin-right: 15px;
-        }
-        .live-search-item-info h6 {
-            margin: 0 0 5px 0;
-            font-weight: bold;
-        }
-        .live-search-item-info p {
-            margin: 0;
-            font-size: 0.85rem;
-            color: #666;
-        }
-        .live-search-empty {
-            padding: 20px;
-            text-align: center;
-            color: #666;
-        }
-        
-        /* Quick Filters */
-        .quick-filters {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-        .filter-pill {
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            color: white;
-            padding: 8px 20px;
-            border-radius: 30px;
-            font-size: 0.9rem;
-            text-decoration: none;
-            transition: all 0.3s;
-            cursor: pointer;
-        }
-        .filter-pill:hover {
-            background: white;
-            color: #ff4b2b;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
+    /* Live Search Dropdown */
+    .search-container {
+        position: relative;
+        width: 100%;
+    }
+    .live-search-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background: var(--bg-card);
+        border-radius: 15px;
+        margin-top: 10px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        border: 1px solid rgba(255,255,255,0.05);
+        z-index: 1000;
+        max-height: 400px;
+        overflow-y: auto;
+        display: none;
+        text-align: left;
+    }
+    .live-search-item {
+        display: flex;
+        align-items: center;
+        padding: 15px 20px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        text-decoration: none;
+        color: var(--text-main);
+        transition: background 0.3s;
+    }
+    .live-search-item:hover {
+        background: rgba(255,255,255,0.05);
+        color: var(--primary-color);
+    }
+    .live-search-item img {
+        width: 60px;
+        height: 60px;
+        border-radius: 10px;
+        object-fit: cover;
+        margin-right: 15px;
+    }
+    .live-search-item-info h6 {
+        margin: 0 0 5px 0;
+        font-weight: bold;
+        font-family: 'Playfair Display', serif;
+    }
+    .live-search-item-info p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+    .live-search-empty {
+        padding: 20px;
+        text-align: center;
+        color: var(--text-muted);
+    }
+    
+    /* Quick Filters */
+    .quick-filters {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 30px;
+        flex-wrap: wrap;
+    }
+    .filter-pill {
+        background: rgba(28, 31, 30, 0.6);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(212, 175, 55, 0.3);
+        color: var(--primary-color);
+        padding: 12px 30px;
+        border-radius: 30px;
+        font-size: 0.95rem;
+        text-decoration: none;
+        transition: all 0.4s ease;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .filter-pill:hover {
+        background: var(--primary-color);
+        color: var(--bg-dark);
+        transform: translateY(-3px);
+        box-shadow: 0 5px 20px rgba(212, 175, 55, 0.3);
+    }
 
     .section-title {
+        font-family: 'Playfair Display', serif;
         font-weight: 700;
-        margin-bottom: 25px;
+        margin-bottom: 50px;
+        color: var(--primary-color);
+        font-size: 2.8rem;
+        text-align: center;
     }
 
     .category-card {
-        background: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border-radius: 20px;
-        padding: 20px 15px;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+        background: var(--bg-card);
+        border-radius: var(--border-radius);
+        padding: 30px 15px;
+        transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        border: 1px solid rgba(255, 255, 255, 0.03);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         cursor: pointer;
         display: block;
         text-decoration: none;
@@ -210,110 +301,114 @@
         overflow: hidden;
     }
 
-    .category-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 50%;
-        height: 100%;
-        background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%);
-        transform: skewX(-25deg);
-        transition: 0.5s;
-    }
-
-    .category-card:hover::before {
-        left: 125%;
-    }
-
     .category-card:hover {
         transform: translateY(-8px);
-        background: #fff;
-        box-shadow: 0 15px 35px rgba(255,75,43,0.15);
-        border-color: rgba(255,75,43,0.3);
+        background: rgba(255, 255, 255, 0.05);
+        box-shadow: 0 15px 40px rgba(212, 175, 55, 0.15);
+        border-color: rgba(212, 175, 55, 0.3);
     }
     
     .category-card span {
+        font-family: 'Playfair Display', serif;
         font-weight: 600;
-        color: #444;
+        color: var(--text-main);
         transition: color 0.3s;
-        font-size: 1.05rem;
+        font-size: 1.3rem;
         display: block;
-        margin-top: 5px;
+        margin-top: 20px;
     }
     .category-card:hover span {
-        color: #ff4b2b;
+        color: var(--primary-color);
     }
 
     .category-img {
-        width: 80px;
-        height: 80px;
+        width: 110px;
+        height: 110px;
         object-fit: cover;
         border-radius: 50%;
-        margin-bottom: 10px;
-        transition: transform 0.3s ease;
+        margin-bottom: 15px;
+        transition: transform 0.6s ease;
+        border: 2px solid rgba(212, 175, 55, 0.2);
     }
     .category-card:hover .category-img {
-        transform: scale(1.1);
+        transform: scale(1.1) rotate(5deg);
+        border-color: var(--primary-color);
     }
 
     .feedback-card {
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(10px);
-        border-radius: 20px;
-        padding: 30px 20px;
+        background: var(--bg-card);
+        border-radius: var(--border-radius);
+        padding: 40px 30px;
         font-style: italic;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-        border: 1px solid rgba(255,255,255,0.8);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        border: 1px solid rgba(255, 255, 255, 0.05);
         position: relative;
-        transition: transform 0.3s ease;
+        transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
     .feedback-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+        transform: translateY(-8px);
+        box-shadow: 0 16px 40px rgba(212, 175, 55, 0.18);
+        border-color: rgba(212, 175, 55, 0.35);
     }
     .feedback-card::after {
         content: '\201D';
         position: absolute;
-        bottom: -20px;
-        right: 20px;
-        font-size: 5rem;
-        color: rgba(255, 75, 43, 0.1);
-        font-family: serif;
+        bottom: -25px;
+        right: 25px;
+        font-size: 7.5rem;
+        color: rgba(212, 175, 55, 0.08);
+        font-family: 'Playfair Display', serif;
         line-height: 1;
+        pointer-events: none;
+    }
+    .feedback-card p, .feedback-quote {
+        color: #fdfbf7 !important; /* Trắng ngọc trai thanh lịch, sáng rõ, dễ đọc */
+        font-size: 1.12rem !important;
+        line-height: 1.7;
+        font-style: italic;
+        margin-bottom: 18px;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+    .feedback-card h6, .feedback-author {
+        color: var(--primary-color, #d4af37) !important;
+        font-family: 'Playfair Display', serif;
+        font-size: 1.25rem !important;
+        font-weight: 700;
+        font-style: normal;
+        margin-top: 15px;
+        letter-spacing: 0.5px;
     }
 
-    .footer {
-        background: #222;
-        color: #ccc;
-        padding: 25px 0;
-    }
-    
     /* Skeleton Loading CSS */
     .skeleton-card {
-        background: #fff;
-        border-radius: 12px;
+        background: var(--bg-card);
+        border-radius: var(--border-radius);
         overflow: hidden;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         height: 100%;
         display: flex;
         flex-direction: column;
+        border: 1px solid rgba(255,255,255,0.03);
     }
     .skeleton-img {
         width: 100%;
-        height: 160px;
-        background: #e0e0e0;
+        height: 220px;
+        background: #2a2d2c;
         animation: pulse 1.5s infinite ease-in-out;
     }
     .skeleton-body {
-        padding: 15px;
+        padding: 20px;
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 15px;
     }
     .skeleton-text {
         height: 15px;
-        background: #e0e0e0;
+        background: #2a2d2c;
         border-radius: 4px;
         animation: pulse 1.5s infinite ease-in-out;
     }
@@ -321,19 +416,42 @@
     .skeleton-text.w-50 { width: 50%; }
     .skeleton-text.w-100 { width: 100%; }
     @@keyframes pulse {
-        0% { background-color: #e0e0e0; }
-        50% { background-color: #f5f5f5; }
-        100% { background-color: #e0e0e0; }
+        0% { background-color: #2a2d2c; }
+        50% { background-color: #383c3b; }
+        100% { background-color: #2a2d2c; }
     }
 </style>
 
-<section class="banner">
+<section class="banner particle-parent">
     <div class="banner-overlay">
         <div class="banner-content text-center" data-aos="fade-up" data-aos-duration="1000">
             <h1 class="mb-3">Đặt món nhanh – Giao tận nơi</h1>
-            <p class="mb-4">Khám phá hàng trăm nhà hàng, quán ăn yêu thích quanh bạn!</p>
+            <p class="mb-3">Khám phá hàng trăm nhà hàng, quán ăn yêu thích quanh bạn!</p>
 
-            <form class="search-bar mt-4" method="get" action="@Url.Action("TrangChu", "Home")" data-aos="zoom-in" data-aos-delay="300">
+            <!-- Trust Badges: Cân đối 2 bên, không che chữ, không lệch layout -->
+            <div class="hero-trust-badges d-flex justify-content-center align-items-center gap-3 mb-4 flex-wrap" data-aos="fade-up" data-aos-delay="200">
+                <div class="hero-badge-item">
+                    <div class="hero-badge-icon badge-bolt">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <div class="text-start">
+                        <div class="badge-sub">Giao siêu tốc</div>
+                        <div class="badge-main">15 - 30 phút</div>
+                    </div>
+                </div>
+
+                <div class="hero-badge-item">
+                    <div class="hero-badge-icon badge-shield">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="text-start">
+                        <div class="badge-sub">Chất lượng chuẩn</div>
+                        <div class="badge-main">100% An toàn</div>
+                    </div>
+                </div>
+            </div>
+
+            <form class="search-bar mt-2" method="get" action="@Url.Action("TrangChu", "Home")" data-aos="zoom-in" data-aos-delay="300">
                 <div class="search-container d-flex">
                     <input type="text"
                            id="searchInput"
@@ -399,35 +517,38 @@
 <section class="feedback mt-5 pb-5">
     <div class="container text-center">
         <h2 class="section-title" data-aos="fade-up">Khách hàng nói gì về chúng tôi</h2>
-        <div class="row mt-4">
+        <div class="row mt-4 g-4">
             <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
-                <div class="card feedback-card">
-                    <p class="fs-5 text-muted mb-4">“Giao hàng cực nhanh, đồ ăn còn nóng hổi! Rất hài lòng”</p>
-                    <h6 class="fw-bold text-dark">- Minh Anh</h6>
+                <div class="card feedback-card text-start">
+                    <div class="text-warning mb-3" style="font-size: 0.95rem;">
+                        <i class="fas fa-star"></i> <i class="fas fa-star"></i> <i class="fas fa-star"></i> <i class="fas fa-star"></i> <i class="fas fa-star"></i>
+                    </div>
+                    <p class="feedback-quote">“Giao hàng cực nhanh, đồ ăn còn nóng hổi! Rất hài lòng”</p>
+                    <h6 class="feedback-author"><span style="color: var(--primary-color);">-</span> Minh Anh</h6>
                 </div>
             </div>
             <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
-                <div class="card feedback-card">
-                    <p class="fs-5 text-muted mb-4">“Món ăn đa dạng, tìm quán dễ dàng, thanh toán tiện lợi”</p>
-                    <h6 class="fw-bold text-dark">- Đức Huy</h6>
+                <div class="card feedback-card text-start">
+                    <div class="text-warning mb-3" style="font-size: 0.95rem;">
+                        <i class="fas fa-star"></i> <i class="fas fa-star"></i> <i class="fas fa-star"></i> <i class="fas fa-star"></i> <i class="fas fa-star"></i>
+                    </div>
+                    <p class="feedback-quote">“Món ăn đa dạng, tìm quán dễ dàng, thanh toán tiện lợi”</p>
+                    <h6 class="feedback-author"><span style="color: var(--primary-color);">-</span> Đức Huy</h6>
                 </div>
             </div>
             <div class="col-md-4" data-aos="fade-up" data-aos-delay="500">
-                <div class="card feedback-card">
-                    <p class="fs-5 text-muted mb-4">“App thân thiện, đặt hàng chưa bao giờ nhanh như vậy”</p>
-                    <h6 class="fw-bold text-dark">- Thuỷ Tiên</h6>
+                <div class="card feedback-card text-start">
+                    <div class="text-warning mb-3" style="font-size: 0.95rem;">
+                        <i class="fas fa-star"></i> <i class="fas fa-star"></i> <i class="fas fa-star"></i> <i class="fas fa-star"></i> <i class="fas fa-star"></i>
+                    </div>
+                    <p class="feedback-quote">“App thân thiện, đặt hàng chưa bao giờ nhanh như vậy”</p>
+                    <h6 class="feedback-author"><span style="color: var(--primary-color);">-</span> Thuỷ Tiên</h6>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<footer class="footer mt-5">
-    <div class="container text-center">
-        <p>© 2025 TapFood Delivery. All rights reserved.</p>
-        <p>Hotline: 1900 9999 | Email: support@tapfood.vn</p>
-    </div>
-</footer>
 
 @if (Session["TaiKhoan"] != null && (Session["TaiKhoan"] as ĐACN.TaiKhoan)?.VaiTro == "KhachHang")
 {
@@ -466,6 +587,20 @@
                             $('#nhahang-container').html(res.nhahang);
                         } else {
                             $('#nhahang-container').html('<div class="alert alert-warning">Không tìm thấy nhà hàng nào.</div>');
+                        }
+                        
+                        // GSAP Antigravity Effect for loaded cards
+                        if (typeof gsap !== 'undefined') {
+                            gsap.utils.toArray('#nhahang-container .category-card, #recommended-container .category-card, .danh-muc-card').forEach((card, i) => {
+                                gsap.to(card, {
+                                    y: "-=8",
+                                    duration: 1.5 + Math.random(),
+                                    yoyo: true,
+                                    repeat: -1,
+                                    ease: "sine.inOut",
+                                    delay: Math.random() * 2
+                                });
+                            });
                         }
                     },
                     error: function () {
@@ -510,6 +645,36 @@
             } catch (e) {
                 console.error(e);
             }
+            
+            // GSAP Float for static items
+            if (typeof gsap !== 'undefined') {
+                gsap.utils.toArray('.filter-pill, .feedback-card').forEach((el) => {
+                    gsap.to(el, {
+                        y: "-=6",
+                        duration: 1.5 + Math.random(),
+                        yoyo: true,
+                        repeat: -1,
+                        ease: "sine.inOut",
+                        delay: Math.random()
+                    });
+                });
+            }
+            // Khởi tạo Antigravity Floating Particles cho Hero Banner
+            if (typeof Antigravity !== 'undefined') {
+                var bannerEl = document.querySelector('.banner');
+                if (bannerEl) {
+                    new Antigravity(bannerEl, {
+                        palette: 'tapfood',
+                        particleCount: 50,
+                        opacity: 0.8,
+                        gravity: -0.035,
+                        speed: 0.65,
+                        shape: 'mixed',
+                        interactive: true,
+                        zIndex: 0
+                    });
+                }
+            }
         });
     </script>
 
@@ -517,6 +682,9 @@
     {
         <script>
             document.addEventListener("DOMContentLoaded", function() {
+                if (typeof Antigravity !== 'undefined') {
+                    Antigravity.celebrate({ palette: 'tapfood', particleCount: 90, duration: 3500 });
+                }
                 Swal.fire({
                     icon: 'success',
                     title: 'Đặt hàng thành công!',

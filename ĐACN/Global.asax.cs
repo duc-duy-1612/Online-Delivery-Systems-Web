@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
@@ -18,6 +18,12 @@ namespace ĐACN
             FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
             RouteConfig.RegisterRoutes(RouteTable.Routes);
             BundleConfig.RegisterBundles(BundleTable.Bundles);
+        }
+
+        protected void Application_Error(object sender, EventArgs e)
+        {
+            Exception ex = Server.GetLastError();
+            System.IO.File.AppendAllText(Server.MapPath("~/App_Data/ErrorLog.txt"), DateTime.Now + ": " + ex.ToString() + Environment.NewLine);
         }
     }
 }

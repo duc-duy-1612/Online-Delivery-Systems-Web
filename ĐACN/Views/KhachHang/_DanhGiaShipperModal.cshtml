@@ -1,8 +1,8 @@
 <div class="modal fade" id="danhGiaShipperModal" tabindex="-1" aria-labelledby="danhGiaShipperModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="danhGiaShipperModalLabel">
+        <div class="modal-content premium-card text-light" style="background: var(--bg-card);">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <h5 class="modal-title" id="danhGiaShipperModalLabel" style="color: var(--primary-color);">
                     ⭐ Đánh giá Shipper
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -17,7 +17,7 @@
                     <p class="text-muted small">Thời gian đặt: <span id="ratingThoiGian"></span></p>
                 </div>
 
-                <hr />
+                <hr style="border-color: rgba(255,255,255,0.1);" />
 
                 <div class="mb-4">
                     <label class="form-label fw-bold">Đánh giá bằng sao: <span id="ratingSoSaoDisplay">0</span>/5</label>
@@ -33,18 +33,18 @@
 
                 <div class="mb-3">
                     <label for="ratingBinhLuan" class="form-label fw-bold">Bình luận (tùy chọn):</label>
-                    <textarea class="form-control" id="ratingBinhLuan" rows="3" placeholder="Chia sẻ trải nghiệm của bạn về shipper..."></textarea>
+                    <textarea class="form-control" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1);" id="ratingBinhLuan" rows="3" placeholder="Chia sẻ trải nghiệm của bạn về shipper..."></textarea>
                 </div>
 
-                <div class="alert alert-info small">
+                <div class="alert small" style="background: rgba(13, 110, 253, 0.1); color: #8bb9fe; border: 1px solid rgba(13, 110, 253, 0.2);">
                     ℹ️ Đánh giá của bạn giúp shipper cải thiện dịch vụ và giúp khách hàng khác lựa chọn tốt hơn.
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" style="border-top: 1px solid rgba(255,255,255,0.05);">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnBoQuaDanhGia">
                     Bỏ qua
                 </button>
-                <button type="button" class="btn btn-primary" id="btnLuuDanhGia" disabled>
+                <button type="button" class="btn btn-primary-custom" id="btnLuuDanhGia" disabled>
                     Gửi đánh giá
                 </button>
             </div>
@@ -89,7 +89,7 @@
                     } else {
                         $(this).removeClass('active');
                         $(this).css('filter', 'grayscale(100%)');
-                        $(this).css('opacity', '0.3');
+                        $(this).css('opacity', '0.5');
                     }
                 });
 
@@ -116,7 +116,7 @@
                         $(this).css('opacity', '1');
                     } else {
                         $(this).css('filter', 'grayscale(100%)');
-                        $(this).css('opacity', '0.3');
+                        $(this).css('opacity', '0.5');
                     }
                 });
             });

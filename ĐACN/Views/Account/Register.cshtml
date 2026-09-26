@@ -1,5 +1,6 @@
 @{
     Layout = null;
+    string googleClientId = System.Configuration.ConfigurationManager.AppSettings["Google:ClientId"];
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -10,363 +11,409 @@
     <link href="~/Content/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
-        body, html {
-            height: 100%;
-            margin: 0;
-            font-family: 'Outfit', sans-serif;
-            background-color: #f8f9fa;
-            overflow: hidden; /* Only scroll the right side */
-        }
-        .split-screen {
-            display: flex;
-            height: 100vh;
-        }
-        .left-side {
-            flex: 1;
-            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.8)), url('https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=2000&auto=format&fit=crop') center/cover;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            padding: 40px;
-            text-align: center;
-        }
-        .right-side {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: white;
-            padding: 40px;
-            overflow-y: auto;
-            position: relative;
-        }
-        .register-container {
-            width: 100%;
-            max-width: 500px;
-            margin: auto;
-        }
-        .register-card {
-            width: 100%;
-        }
+    * { box-sizing: border-box; }
+    body, html { min-height: 100vh; font-family: 'Inter', 'Segoe UI', sans-serif; background: #f8f9fa; color: #2d3748; }
 
-        .next-btn, .btn-gradient {
-            background: linear-gradient(135deg, #ff416c, #ff4b2b);
-            color: white;
-            border: none;
-            font-weight: bold;
-            transition: all 0.3s;
-            padding: 10px 20px;
-            border-radius: 50px;
-        }
+    /* ===== SPLIT SCREEN LAYOUT ===== */
+    .split-screen { display: flex; min-height: 100vh; align-items: stretch; }
+    .left-side {
+        flex: 1.1;
+        background: linear-gradient(135deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 100%),
+                    url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070') center/cover;
+        color: white;
+        display: flex; flex-direction: column;
+        justify-content: center;
+        padding: 60px 10%;
+        position: relative;
+        text-align: left;
+        overflow: hidden;
+    }
+    .right-side {
+        flex: 0.9;
+        display: flex; flex-direction: column;
+        align-items: center;
+        background: #f8f9fa;
+        padding: 24px;
+        position: relative;
+        overflow-y: auto;
+    }
 
-        .next-btn:hover:not(:disabled), .btn-gradient:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(255, 75, 43, 0.4);
-            color: white;
-        }
+    /* ===== PAGE HEADER ===== */
 
-        .next-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
+    /* ===== MAIN CARD ===== */
+        /* ===== FORM SECTIONS & ROLE SWITCHER ===== */
+    .form-section {
+        display: none;
+    }
+    .form-section.active {
+        display: block;
+        animation: fadeInSection 0.3s ease forwards;
+    }
+    @@keyframes fadeInSection {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .role-switcher {
+        display: flex;
+        background: #edf2f7;
+        padding: 6px;
+        border-radius: 16px;
+        gap: 8px;
+        margin-bottom: 2rem;
+    }
+    .role-btn {
+        flex: 1;
+        border: none;
+        background: transparent;
+        padding: 12px 10px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #4a5568;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+    .role-btn:hover {
+        color: #1a202c;
+        background: rgba(255, 255, 255, 0.6);
+    }
+    .role-btn.active {
+        background: #ffffff;
+        color: #ff5a2b;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        font-weight: 700;
+    }
+    .role-btn i {
+        font-size: 1.05rem;
+    }
+    .preview-image {
+        max-width: 140px;
+        max-height: 140px;
+        border-radius: 12px;
+        margin-top: 8px;
+        border: 2px solid #e2e8f0;
+        object-fit: cover;
+    }
 
-        .form-section {
-            display: none;
-            animation: fadeIn 0.4s ease;
-        }
+    .register-card {
+        background: #fff;
+        border-radius: 1.5rem;
+        border: 1px solid rgba(0,0,0,0.07);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.07);
+        padding: 2rem 2.5rem;
+        max-width: 700px; margin: 0 auto 3rem;
+    }
 
-        .form-section.active {
-            display: block;
-        }
+    /* ===== FORM ===== */
+    label { font-weight: 600; font-size: 0.88rem; color: #4a5568; margin-bottom: 6px; }
+    .form-control, .form-select {
+        border-radius: 0.85rem;
+        border: 1.5px solid #e2e8f0;
+        padding: 0.7rem 1rem;
+        background: #f7fafc;
+        color: #2d3748;
+        transition: all 0.25s;
+    }
+    .form-control:focus, .form-select:focus {
+        background: #fff; border-color: #ff5a2b;
+        box-shadow: 0 0 0 3px rgba(255,90,43,0.12); outline: none;
+    }
+    .form-control::placeholder { color: #a0aec0; }
 
-        @@keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+    /* ===== SECTION TITLE ===== */
+    .section-title {
+        font-weight: 800; font-size: 1rem; color: #1a202c;
+        padding-bottom: 0.75rem; margin-bottom: 1.25rem;
+        border-bottom: 2px solid #f0f2f5;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .section-title .icon { color: #ff5a2b; }
 
-        .back-btn {
-            background: transparent;
-            color: #6c757d;
-            border: 1px solid #ccc;
-            padding: 8px 20px;
-            border-radius: 50px;
-            cursor: pointer;
-            margin-bottom: 20px;
-            transition: all 0.3s;
-        }
+    /* ===== ROLE TABS ===== */
+    .role-tabs { display: flex; gap: 10px; margin-bottom: 1.5rem; }
+    .role-tab {
+        flex: 1; padding: 0.75rem; border-radius: 0.85rem;
+        border: 1.5px solid #e2e8f0; background: #f7fafc;
+        text-align: center; cursor: pointer; transition: all 0.2s;
+        font-weight: 600; font-size: 0.9rem; color: #718096;
+    }
+    .role-tab:hover { border-color: #ff5a2b; color: #ff5a2b; background: #fff5f0; }
+    .role-tab.active { background: #fff5f0; border-color: #ff5a2b; color: #ff5a2b; font-weight: 700; }
 
-        .back-btn:hover {
-            background-color: #f8f9fa;
-            color: #333;
-            border-color: #999;
-        }
+    /* ===== SUBMIT BUTTON ===== */
+    .btn-register {
+        background: linear-gradient(135deg, #ff5a2b, #ff9f1c);
+        border: none; color: #fff; padding: 0.9rem 1.5rem;
+        border-radius: 0.9rem; font-weight: 700; font-size: 1rem;
+        width: 100%; transition: all 0.3s;
+        box-shadow: 0 6px 18px rgba(255,90,43,0.3);
+    }
+    .btn-register:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(255,90,43,0.4); color: #fff; }
 
-        .preview-image {
-            max-width: 200px;
-            max-height: 200px;
-            margin-top: 10px;
-            border-radius: 5px;
-            border: 1px solid #ddd;
-        }
+    /* ===== BACK HOME ===== */
+    .back-home {
+        text-align: center; margin-top: 1.25rem;
+    }
+    .back-home a { color: #718096; text-decoration: none; font-size: 0.9rem; }
+    .back-home a:hover { color: #ff5a2b; }
+    .text-orange { color: #ff5a2b !important; font-weight: 700; }
 
-        .form-label-small {
-            font-size: 0.875rem;
-            font-weight: 500;
-            margin-bottom: 0.25rem;
-            display: block;
-            color: #555;
-        }
-        .form-control, .form-select {
-            border-radius: 10px;
-            padding: 10px 15px;
-            border: 1px solid #ddd;
-        }
-        .form-control:focus, .form-select:focus {
-            border-color: #ff4b2b;
-            box-shadow: 0 0 0 0.2rem rgba(255, 75, 43, 0.25);
-        }
-        
-        .back-home {
-            position: absolute;
-            top: 20px;
-            right: 30px;
-            text-decoration: none;
-            color: #555;
-            font-weight: 500;
-            transition: color 0.3s;
-            z-index: 10;
-        }
-        .back-home:hover {
-            color: #ff4b2b;
-        }
-        @@media (max-width: 768px) {
-            .left-side { display: none; }
-            .split-screen { display: block; overflow: auto; }
-            .right-side { min-height: 100vh; overflow: visible; }
-            body, html { overflow: auto; }
-        }
-    </style>
+    /* ===== ALERTS ===== */
+    .alert { border-radius: 0.85rem; }
+    .alert-danger { background: #fee2e2 !important; border: 1px solid #fecaca !important; color: #991b1b !important; }
+
+    /* ===== INVALID FEEDBACK ===== */
+    .invalid-feedback { font-size: 0.82rem; }
+    .form-control.is-invalid { border-color: #ef4444 !important; }
+    .form-control.is-valid { border-color: #22c55e !important; }
+
+    @@media (max-width: 768px) {
+        .split-screen { flex-direction: column; }
+        .left-side { display: none; }
+    }
+    @@media (max-width: 576px) {
+        .register-card { padding: 1.5rem; border-radius: 1rem; margin: 0 1rem 2rem; }
+    }
+</style>
 </head>
 <body>
     <div class="split-screen">
-        <div class="left-side">
-            <h1 class="fw-bold mb-3"><img src="~/images/logo.jpg" alt="TapFood" style="height: 48px; margin-right: 12px; border-radius: 8px;" />TapFood</h1>
-            <p class="fs-4">Đăng ký ngay để trải nghiệm giao đồ ăn tuyệt đỉnh.</p>
+        <div class="left-side" id="registerLeftPanel">
+            <div style="position: relative; z-index: 2;">
+                <h1 class="mb-4" style="font-family: 'Playfair Display', serif; font-size: 3.5rem; font-weight: 700; display: flex; align-items: center;">
+                    <img src="@Url.Content("~/images/logo.png")" alt="TapFood" style="height: 64px; margin-right: 16px; object-fit: contain;" />
+                    <span>Tap<span style="color: var(--primary-color);">Food</span></span>
+                </h1>
+                <p style="font-size: 1.15rem; font-weight: 300; line-height: 1.6; opacity: 0.9; margin-bottom: 2.5rem; max-width: 420px;">
+                    Hương vị tuyệt hảo — giao đến tận cửa, siêu tốc và tiện lợi mỗi ngày.
+                </p>
+                <div style="font-size: 1.05rem; font-weight: 300; opacity: 0.8; line-height: 2;">
+                    &bull; &nbsp;Giao hàng trong 30 phút<br/>
+                    &bull; &nbsp;Hàng trăm nhà hàng đối tác<br/>
+                    &bull; &nbsp;Thanh toán an toàn bảo mật
+                </div>
+            </div>
         </div>
         <div class="right-side">
-            <a href="@Url.Action("TrangChu", "Home")" class="back-home"><i class="fa-solid fa-house"></i> Về trang chủ</a>
-            <div class="register-container">
-                <div class="register-card">
-                    <h2 class="fw-bold mb-4">Tạo tài khoản mới</h2>
-                    <p class="text-muted mb-4">Tham gia cùng hàng ngàn tín đồ ẩm thực ngay hôm nay!</p>
+            <a href="@Url.Action("TrangChu", "Home")" class="back-home" style="align-self: flex-start; margin-bottom: 20px;"><i class="fa-solid fa-house"></i> Về trang chủ</a>
+            <div class="register-container" style="width: 100%; max-width: 700px; display: flex; flex-direction: column; align-items: center;">
+                <div class="register-card" style="width: 100%;">
+                    <h2 class="fw-bold mb-2">Tạo tài khoản mới</h2>
+                    <p class="text-muted mb-4">Tham gia cùng hàng ngàn tín đồ ẩm thực trên TapFood ngay hôm nay!</p>
+
+                    @Html.AntiForgeryToken()
 
                     <div id="registerError" class="alert alert-danger text-center" style="display:none; border-radius:10px;"></div>
                     <div id="registerSuccess" class="alert alert-success text-center" style="display:none; border-radius:10px;"></div>
 
-                    <div id="step1" class="form-section active text-center">
-                        <div class="form-group mb-5 mt-4">
-                            <label class="fw-bold mb-3 d-block fs-5 text-dark">Bạn muốn đăng ký dưới tư cách nào?</label>
-                            <select name="role" id="role" class="form-select form-select-lg mx-auto shadow-sm" style="max-width: 300px; text-align: center; font-weight: bold; cursor:pointer;" required>
-                                <option value="">-- Chọn vai trò --</option>
-                                <option value="KhachHang">Khách Hàng</option>
-                                <option value="NhaHang">Nhà Hàng</option>
-                                <option value="Shipper">Shipper</option>
-                            </select>
+                    <!-- Role Switcher Tabs -->
+                    <div class="role-switcher">
+                        <button type="button" class="role-btn active" data-role="KhachHang" onclick="selectRole('KhachHang')">
+                            <i class="fa-solid fa-user"></i> Khách Hàng
+                        </button>
+                        <button type="button" class="role-btn" data-role="NhaHang" onclick="selectRole('NhaHang')">
+                            <i class="fa-solid fa-store"></i> Nhà Hàng
+                        </button>
+                        <button type="button" class="role-btn" data-role="Shipper" onclick="selectRole('Shipper')">
+                            <i class="fa-solid fa-motorcycle"></i> Shipper
+                        </button>
+                    </div>
+
+                    <!-- FORM 1: KHACH HANG -->
+                    <div id="formKhachHang" class="form-section active">
+                        <!-- Google Quick Sign-up -->
+                        <div class="text-center mb-3">
+                            <p class="text-muted small mb-2">Đăng ký nhanh chỉ với một chạm</p>
+                            <div id="googleRegisterBtnContainer" style="display:flex; justify-content:center;"></div>
                         </div>
+                        <div class="divider" style="display:flex; align-items:center; gap:12px; color:#a0aec0; font-size:0.85rem; margin:1rem 0;">
+                            <span style="flex:1; height:1px; background:#e2e8f0;"></span>hoặc điền thông tin bên dưới<span style="flex:1; height:1px; background:#e2e8f0;"></span>
+                        </div>
+
+                        <form id="registerKhachHangForm">
+                            <div class="form-group mb-3">
+                                <label class="fw-semibold">Tên khách hàng <span class="text-orange">*</span></label>
+                                <input type="text" name="tenKH" id="tenKH" class="form-control" placeholder="Nhập họ và tên đầy đủ" required />
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label class="fw-semibold">Số điện thoại <span class="text-orange">*</span></label>
+                                <input type="text" name="sdtKH" id="sdtKH" class="form-control" placeholder="Nhập số điện thoại" required onkeypress="return isNumberKey(event)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label class="fw-semibold">Địa chỉ giao hàng <span class="text-orange">*</span></label>
+                                <div class="mb-2">
+                                    <label class="form-label-small text-muted" style="font-size:0.8rem;">Tỉnh / Thành phố</label>
+                                    <select class="form-select form-select-sm" id="cityKH" required>
+                                        <option value="" selected>Chọn Tỉnh Thành</option>
+                                    </select>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label-small text-muted" style="font-size:0.8rem;">Quận / Huyện</label>
+                                    <select class="form-select form-select-sm" id="districtKH" required disabled>
+                                        <option value="" selected>Chọn Quận Huyện</option>
+                                    </select>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label-small text-muted" style="font-size:0.8rem;">Phường / Xã</label>
+                                    <select class="form-select form-select-sm" id="wardKH" required disabled>
+                                        <option value="" selected>Chọn Phường Xã</option>
+                                    </select>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label-small text-muted" style="font-size:0.8rem;">Số nhà, Tên đường</label>
+                                    <input type="text" class="form-control form-control-sm" id="streetKH" placeholder="Ví dụ: 123 Đường Nguyễn Trãi" required />
+                                </div>
+                                <input type="hidden" name="diaChiKH" id="diaChiKH" />
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label class="fw-semibold">Tên đăng nhập <span class="text-orange">*</span></label>
+                                <input type="text" name="usernameKH" id="usernameKH" class="form-control" placeholder="Tạo tên đăng nhập" required />
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label class="fw-semibold">Mật khẩu <span class="text-orange">*</span></label>
+                                <input type="password" name="passwordKH" id="passwordKH" class="form-control" placeholder="Tạo mật khẩu an toàn" required />
+                            </div>
+
+                            <div class="form-group mb-4">
+                                <label class="fw-semibold">Xác nhận mật khẩu <span class="text-orange">*</span></label>
+                                <input type="password" name="confirmPasswordKH" id="confirmPasswordKH" class="form-control" placeholder="Nhập lại mật khẩu" required />
+                            </div>
+
+                            <button type="button" class="btn btn-register btn-lg w-100" onclick="submitRegister('KhachHang')">
+                                <i class="fa-solid fa-user-plus me-2"></i> Đăng Ký Tài Khoản Khách Hàng
+                            </button>
+                        </form>
                     </div>
 
+                    <!-- FORM 2: NHA HANG -->
+                    <div id="formNhaHang" class="form-section">
+                        <form id="registerNhaHangForm" enctype="multipart/form-data">
+                            <div class="form-group mb-3">
+                                <label class="fw-semibold">Tên quán ăn / Nhà hàng <span class="text-orange">*</span></label>
+                                <input type="text" name="tenNH" id="tenNH" class="form-control" placeholder="Ví dụ: Quán Cơm Tấm Sài Gòn" required />
+                            </div>
 
-        <div id="formKhachHang" class="form-section">
-            <button type="button" class="back-btn" onclick="goBack()">
-                <i class="bi bi-arrow-left"></i> Quay lại
-            </button>
-            <h4 class="mb-4 text-center">Đăng ký Khách Hàng</h4>
+                            <div class="form-group mb-3">
+                                <label class="fw-semibold">Địa chỉ kinh doanh <span class="text-orange">*</span></label>
+                                <div class="mb-2">
+                                    <label class="form-label-small text-muted" style="font-size:0.8rem;">Tỉnh / Thành phố</label>
+                                    <select class="form-select form-select-sm" id="cityNH" required>
+                                        <option value="" selected>Chọn Tỉnh Thành</option>
+                                    </select>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label-small text-muted" style="font-size:0.8rem;">Quận / Huyện</label>
+                                    <select class="form-select form-select-sm" id="districtNH" required disabled>
+                                        <option value="" selected>Chọn Quận Huyện</option>
+                                    </select>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label-small text-muted" style="font-size:0.8rem;">Phường / Xã</label>
+                                    <select class="form-select form-select-sm" id="wardNH" required disabled>
+                                        <option value="" selected>Chọn Phường Xã</option>
+                                    </select>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label-small text-muted" style="font-size:0.8rem;">Số nhà, Tên đường</label>
+                                    <input type="text" class="form-control form-control-sm" id="streetNH" placeholder="Ví dụ: 456 Lê Lợi" required />
+                                </div>
+                                <input type="hidden" name="diaChiNH" id="diaChiNH" />
+                            </div>
 
-            <form id="registerKhachHangForm">
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Tên khách hàng <span class="text-danger">*</span></label>
-                    <input type="text" name="tenKH" id="tenKH" class="form-control" placeholder="Nhập tên khách hàng" required />
-                </div>
+                            <div class="form-group mb-3">
+                                <label class="fw-semibold">Số điện thoại liên hệ <span class="text-orange">*</span></label>
+                                <input type="text" name="sdtNH" id="sdtNH" class="form-control" placeholder="Số điện thoại nhà hàng" required onkeypress="return isNumberKey(event)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
+                            </div>
 
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Số điện thoại <span class="text-danger">*</span></label>
-                    <input type="text" name="sdtKH" id="sdtKH" class="form-control" placeholder="Nhập số điện thoại" required onkeypress="return isNumberKey(event)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
-                </div>
+                            <div class="form-group mb-3">
+                                <label class="fw-semibold">Ảnh đại diện quán <span class="text-orange">*</span></label>
+                                <input type="file" name="hinhAnhNH" id="hinhAnhNH" class="form-control" accept="image/*" required />
+                                <small class="form-text text-muted">Chọn ảnh mặt tiền hoặc biển hiệu quán ăn</small>
+                                <img id="previewNH" class="preview-image" style="display:none;" />
+                            </div>
 
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Địa chỉ <span class="text-danger">*</span></label>
-                    <div class="mb-2">
-                        <label class="form-label-small">Tỉnh / Thành phố</label>
-                        <select class="form-select form-select-sm" id="cityKH" required>
-                            <option value="" selected>Chọn Tỉnh Thành</option>
-                        </select>
+                            <div class="form-group mb-3">
+                                <label class="fw-semibold">Tên đăng nhập <span class="text-orange">*</span></label>
+                                <input type="text" name="usernameNH" id="usernameNH" class="form-control" placeholder="Tên đăng nhập quản lý" required />
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label class="fw-semibold">Mật khẩu <span class="text-orange">*</span></label>
+                                <input type="password" name="passwordNH" id="passwordNH" class="form-control" placeholder="Mật khẩu" required />
+                            </div>
+
+                            <div class="form-group mb-4">
+                                <label class="fw-semibold">Xác nhận mật khẩu <span class="text-orange">*</span></label>
+                                <input type="password" name="confirmPasswordNH" id="confirmPasswordNH" class="form-control" placeholder="Nhập lại mật khẩu" required />
+                            </div>
+
+                            <button type="button" class="btn btn-register btn-lg w-100" onclick="submitRegister('NhaHang')">
+                                <i class="fa-solid fa-store me-2"></i> Đăng Ký Mở Cửa Hàng / Quán Ăn
+                            </button>
+                        </form>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label-small">Quận / Huyện</label>
-                        <select class="form-select form-select-sm" id="districtKH" required disabled>
-                            <option value="" selected>Chọn Quận Huyện</option>
-                        </select>
+
+                    <!-- FORM 3: SHIPPER -->
+                    <div id="formShipper" class="form-section">
+                        <form id="registerShipperForm" enctype="multipart/form-data">
+                            <div class="form-group mb-3">
+                                <label class="fw-semibold">Họ và tên tài xế <span class="text-orange">*</span></label>
+                                <input type="text" name="tenShipper" id="tenShipper" class="form-control" placeholder="Nhập họ và tên đầy đủ" required />
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label class="fw-semibold">Số điện thoại <span class="text-orange">*</span></label>
+                                <input type="text" name="sdtShipper" id="sdtShipper" class="form-control" placeholder="Nhập số điện thoại nhận đơn" required onkeypress="return isNumberKey(event)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label class="fw-semibold">Biển số xe máy <span class="text-orange">*</span></label>
+                                <input type="text" name="bienSoXe" id="bienSoXe" class="form-control" placeholder="Ví dụ: 59-X1 123.45" required />
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label class="fw-semibold">Ảnh chân dung tài xế <span class="text-orange">*</span></label>
+                                <input type="file" name="hinhAnhShipper" id="hinhAnhShipper" class="form-control" accept="image/*" required />
+                                <small class="form-text text-muted">Ảnh rõ mặt, không đeo kính râm</small>
+                                <img id="previewShipper" class="preview-image" style="display:none;" />
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label class="fw-semibold">Tên đăng nhập <span class="text-orange">*</span></label>
+                                <input type="text" name="usernameShipper" id="usernameShipper" class="form-control" placeholder="Tên đăng nhập" required />
+                            </div>
+
+                            <div class="form-group mb-3">
+                                <label class="fw-semibold">Mật khẩu <span class="text-orange">*</span></label>
+                                <input type="password" name="passwordShipper" id="passwordShipper" class="form-control" placeholder="Mật khẩu" required />
+                            </div>
+
+                            <div class="form-group mb-4">
+                                <label class="fw-semibold">Xác nhận mật khẩu <span class="text-orange">*</span></label>
+                                <input type="password" name="confirmPasswordShipper" id="confirmPasswordShipper" class="form-control" placeholder="Nhập lại mật khẩu" required />
+                            </div>
+
+                            <button type="button" class="btn btn-register btn-lg w-100" onclick="submitRegister('Shipper')">
+                                <i class="fa-solid fa-motorcycle me-2"></i> Đăng Ký Trở Thành Shipper
+                            </button>
+                        </form>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label-small">Phường / Xã</label>
-                        <select class="form-select form-select-sm" id="wardKH" required disabled>
-                            <option value="" selected>Chọn Phường Xã</option>
-                        </select>
+
+                    <div class="text-center mt-4 pt-3" style="border-top: 1px solid #f1f5f9;">
+                        <span class="text-muted">Đã có tài khoản?</span>
+                        <a href="/Account/Login" class="fw-bold text-orange text-decoration-none ms-1">Đăng nhập ngay</a>
                     </div>
-                    <div class="mb-2">
-                        <label class="form-label-small">Số nhà, Tên đường</label>
-                        <input type="text" class="form-control form-control-sm" id="streetKH" placeholder="Ví dụ: 123 Đường ABC" required />
-                    </div>
-                    <input type="hidden" name="diaChiKH" id="diaChiKH" />
-                </div>
-
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Tên đăng nhập <span class="text-danger">*</span></label>
-                    <input type="text" name="usernameKH" id="usernameKH" class="form-control" placeholder="Nhập tên đăng nhập" required />
-                </div>
-
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Mật khẩu <span class="text-danger">*</span></label>
-                    <input type="password" name="passwordKH" id="passwordKH" class="form-control" placeholder="Nhập mật khẩu" required />
-                </div>
-
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Xác nhận mật khẩu <span class="text-danger">*</span></label>
-                    <input type="password" name="confirmPasswordKH" id="confirmPasswordKH" class="form-control" placeholder="Nhập lại mật khẩu" required />
-                </div>
-            </form>
-        </div>
-
-
-        <div id="formNhaHang" class="form-section">
-            <button type="button" class="back-btn" onclick="goBack()">
-                <i class="bi bi-arrow-left"></i> Quay lại
-            </button>
-            <h4 class="mb-4 text-center">Đăng ký Nhà Hàng</h4>
-
-            <form id="registerNhaHangForm" enctype="multipart/form-data">
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Tên nhà hàng <span class="text-danger">*</span></label>
-                    <input type="text" name="tenNH" id="tenNH" class="form-control" placeholder="Nhập tên nhà hàng" required />
-                </div>
-
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Địa chỉ <span class="text-danger">*</span></label>
-                    <div class="mb-2">
-                        <label class="form-label-small">Tỉnh / Thành phố</label>
-                        <select class="form-select form-select-sm" id="cityNH" required>
-                            <option value="" selected>Chọn Tỉnh Thành</option>
-                        </select>
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label-small">Quận / Huyện</label>
-                        <select class="form-select form-select-sm" id="districtNH" required disabled>
-                            <option value="" selected>Chọn Quận Huyện</option>
-                        </select>
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label-small">Phường / Xã</label>
-                        <select class="form-select form-select-sm" id="wardNH" required disabled>
-                            <option value="" selected>Chọn Phường Xã</option>
-                        </select>
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label-small">Số nhà, Tên đường</label>
-                        <input type="text" class="form-control form-control-sm" id="streetNH" placeholder="Ví dụ: 123 Đường ABC" required />
-                    </div>
-                    <input type="hidden" name="diaChiNH" id="diaChiNH" />
-                </div>
-
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Số điện thoại <span class="text-danger">*</span></label>
-                    <input type="text" name="sdtNH" id="sdtNH" class="form-control" placeholder="Nhập số điện thoại" required onkeypress="return isNumberKey(event)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
-                </div>
-
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Hình ảnh <span class="text-danger">*</span></label>
-                    <input type="file" name="hinhAnhNH" id="hinhAnhNH" class="form-control" accept="image/*" required />
-                    <small class="form-text text-muted">Chọn ảnh đại diện cho nhà hàng</small>
-                    <img id="previewNH" class="preview-image" style="display:none;" />
-                </div>
-
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Tên đăng nhập <span class="text-danger">*</span></label>
-                    <input type="text" name="usernameNH" id="usernameNH" class="form-control" placeholder="Nhập tên đăng nhập" required />
-                </div>
-
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Mật khẩu <span class="text-danger">*</span></label>
-                    <input type="password" name="passwordNH" id="passwordNH" class="form-control" placeholder="Nhập mật khẩu" required />
-                </div>
-
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Xác nhận mật khẩu <span class="text-danger">*</span></label>
-                    <input type="password" name="confirmPasswordNH" id="confirmPasswordNH" class="form-control" placeholder="Nhập lại mật khẩu" required />
-                </div>
-            </form>
-        </div>
-
-
-        <div id="formShipper" class="form-section">
-            <button type="button" class="back-btn" onclick="goBack()">
-                <i class="bi bi-arrow-left"></i> Quay lại
-            </button>
-            <h4 class="mb-4 text-center">Đăng ký Shipper</h4>
-
-            <form id="registerShipperForm" enctype="multipart/form-data">
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Tên shipper <span class="text-danger">*</span></label>
-                    <input type="text" name="tenShipper" id="tenShipper" class="form-control" placeholder="Nhập tên shipper" required />
-                </div>
-
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Số điện thoại <span class="text-danger">*</span></label>
-                    <input type="text" name="sdtShipper" id="sdtShipper" class="form-control" placeholder="Nhập số điện thoại" required onkeypress="return isNumberKey(event)" oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
-                </div>
-
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Biển số xe <span class="text-danger">*</span></label>
-                    <input type="text" name="bienSoXe" id="bienSoXe" class="form-control" placeholder="Nhập biển số xe" required />
-                </div>
-
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Hình ảnh <span class="text-danger">*</span></label>
-                    <input type="file" name="hinhAnhShipper" id="hinhAnhShipper" class="form-control" accept="image/*" required />
-                    <small class="form-text text-muted">Chọn ảnh đại diện</small>
-                    <img id="previewShipper" class="preview-image" style="display:none;" />
-                </div>
-
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Tên đăng nhập <span class="text-danger">*</span></label>
-                    <input type="text" name="usernameShipper" id="usernameShipper" class="form-control" placeholder="Nhập tên đăng nhập" required />
-                </div>
-
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Mật khẩu <span class="text-danger">*</span></label>
-                    <input type="password" name="passwordShipper" id="passwordShipper" class="form-control" placeholder="Nhập mật khẩu" required />
-                </div>
-
-                <div class="form-group mb-3">
-                    <label class="fw-semibold">Xác nhận mật khẩu <span class="text-danger">*</span></label>
-                    <input type="password" name="confirmPasswordShipper" id="confirmPasswordShipper" class="form-control" placeholder="Nhập lại mật khẩu" required />
-                </div>
-            </form>
-        </div>
-
-        <div class="text-center mt-3">
-            <p>
-                Đã có tài khoản?
-                <a href="/Account/Login" class="text-decoration-none text-danger fw-semibold">Đăng nhập ngay</a>
-            </p>
-        </div>
-
-        <div class="text-center mt-3">
-            <button type="button" id="nextBtn" class="btn btn-gradient btn-lg w-100" onclick="handleNext()" disabled>
-                <i class="bi bi-arrow-right" id="nextBtnIcon"></i> <span id="nextBtnText">Tiếp theo</span>
-            </button>
-        </div>
                 </div> <!-- /register-card -->
             </div> <!-- /register-container -->
         </div> <!-- /right-side -->
@@ -383,8 +430,17 @@
             return true;
         }
 
-        var currentStep = 1;
-        var selectedRole = '';
+        var selectedRole = 'KhachHang';
+
+        function selectRole(role) {
+            selectedRole = role;
+            $('.role-btn').removeClass('active');
+            $('.role-btn[data-role="' + role + '"]').addClass('active');
+            $('.form-section').removeClass('active');
+            $('#form' + role).addClass('active');
+            $('#registerError').hide();
+            $('#registerSuccess').hide();
+        }
 
         $(document).ready(function () {
 
@@ -578,55 +634,7 @@
             $("#diaChiNH").val(fullAddress);
         }
 
-        function handleNext() {
-            if (currentStep === 1) {
-
-                selectedRole = $('#role').val();
-                if (!selectedRole) {
-                    alert('Vui lòng chọn vai trò!');
-                    return;
-                }
-
-                $('#step1').removeClass('active');
-                $('#nextBtnText').text('Đăng ký');
-                $('#nextBtnIcon').removeClass('bi-arrow-right').addClass('bi-check2-circle');
-
-                if (selectedRole === 'KhachHang') {
-                    $('#formKhachHang').addClass('active');
-
-                    $("#cityKH").val("").trigger('change');
-                    $("#districtKH").html('<option value="">Chọn Quận Huyện</option>').prop('disabled', true);
-                    $("#wardKH").html('<option value="">Chọn Phường Xã</option>').prop('disabled', true);
-                    $("#streetKH").val("");
-                    $("#diaChiKH").val("");
-                } else if (selectedRole === 'NhaHang') {
-                    $('#formNhaHang').addClass('active');
-
-                    $("#cityNH").val("").trigger('change');
-                    $("#districtNH").html('<option value="">Chọn Quận Huyện</option>').prop('disabled', true);
-                    $("#wardNH").html('<option value="">Chọn Phường Xã</option>').prop('disabled', true);
-                    $("#streetNH").val("");
-                    $("#diaChiNH").val("");
-                } else if (selectedRole === 'Shipper') {
-                    $('#formShipper').addClass('active');
-                }
-                currentStep = 2;
-            } else {
-
-                submitRegister();
-            }
-        }
-
-        function goBack() {
-            $('.form-section').removeClass('active');
-            $('#step1').addClass('active');
-            $('#nextBtnText').text('Tiếp theo');
-            $('#nextBtnIcon').removeClass('bi-check2-circle').addClass('bi-arrow-right');
-            $('#nextBtn').prop('disabled', false);
-            currentStep = 1;
-            selectedRole = '';
-            $('#role').val('');
-        }
+        
 
         function submitRegister() {
             var formData = new FormData();
@@ -718,6 +726,9 @@
                     if (res && res.success) {
                         $("#registerError").hide();
                         var message = res.message || "Đăng ký thành công!";
+                        if (typeof Antigravity !== 'undefined') {
+                            Antigravity.celebrate({ palette: 'tapfood', duration: 2000, particleCount: 80 });
+                        }
 
                         if (selectedRole === "NhaHang" || selectedRole === "Shipper") {
                             if (confirm(message + "\n\nBạn đã đăng ký thành công nhưng cần chờ Admin xác nhận.\n\nBạn có muốn quay lại trang đăng nhập không?")) {
@@ -744,6 +755,67 @@
                 }
             });
         }
+        // Google Identity Services callback for Register
+        function handleGoogleRegisterCredential(response) {
+            $.ajax({
+                url: '/Account/GoogleLogin',
+                type: 'POST',
+                data: { credential: response.credential },
+                success: function (res) {
+                    if (res.success) {
+                        if (typeof Antigravity !== 'undefined') {
+                            Antigravity.celebrate({ palette: 'tapfood', duration: 1500 });
+                        }
+                        if (res.isNew) {
+                            alert('Đăng ký thành công bằng Google! Chào mừng bạn đến với TapFood.');
+                        }
+                        window.location.href = '/Home/TrangChu';
+                    } else {
+                        $("#registerError").text(res.message).show();
+                    }
+                },
+                error: function () {
+                    $("#registerError").text("Có lỗi xảy ra khi đăng ký bằng Google.").show();
+                }
+            });
+        }
+
+        // Initialize Google Sign-In for Register
+        window.addEventListener('load', function() {
+            if (typeof google !== 'undefined' && google.accounts) {
+                google.accounts.id.initialize({
+                    client_id: '@googleClientId',
+                    callback: handleGoogleRegisterCredential
+                });
+                var regBtn = document.getElementById('googleRegisterBtnContainer');
+                if (regBtn) {
+                    google.accounts.id.renderButton(
+                        regBtn,
+                        {
+                            theme: 'outline',
+                            size: 'large',
+                            width: 300,
+                            text: 'signup_with',
+                            shape: 'rectangular',
+                            logo_alignment: 'left'
+                        }
+                    );
+                }
+            }
+            // Khởi tạo hiệu ứng Antigravity cho cột thương hiệu bên trái
+            if (typeof Antigravity !== 'undefined') {
+                new Antigravity('#registerLeftPanel', {
+                    palette: 'tapfood',
+                    particleCount: 35,
+                    opacity: 0.85,
+                    gravity: -0.04,
+                    speed: 0.7,
+                    interactive: true,
+                    zIndex: 1
+                });
+            }
+        });
     </script>
+    <script src="@Url.Content("~/Scripts/antigravity/antigravity.js")"></script>
 </body>
 </html>

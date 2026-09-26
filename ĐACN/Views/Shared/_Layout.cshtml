@@ -3,6 +3,7 @@
     Layout = null;
 
     var tk = Session["TaiKhoan"] as TaiKhoan;
+    string googleClientId = System.Configuration.ConfigurationManager.AppSettings["Google:ClientId"];
 }
 
 <!DOCTYPE html>
@@ -20,6 +21,7 @@
     <!-- Bootstrap CSS -->
     <link href="@Url.Content("~/Content/bootstrap.min.css")" rel="stylesheet" />
     <link href="@Url.Content("~/Content/Site.css")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/animations-3d.css")" rel="stylesheet" />
 
     @Styles.Render("~/Content/css")
     @Scripts.Render("~/bundles/modernizr")
@@ -28,6 +30,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     
     <style>
         .nav-item.dropdown > a::after {
@@ -60,45 +63,10 @@
         }
 
         /* Modern UI Additions */
-        .glass-nav {
-            background: linear-gradient(135deg, #1e2024 0%, #2b2f33 100%) !important;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        }
-        
         .text-gradient {
-            background: linear-gradient(135deg, #ff416c, #ff4b2b);
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-        }
-
-        .navbar-dark .nav-link {
-            color: rgba(255, 255, 255, 0.85) !important;
-            font-weight: 500;
-            position: relative;
-            transition: color 0.3s ease;
-        }
-
-        .navbar-dark .nav-link:hover {
-            color: #ff4b2b !important;
-        }
-
-        .navbar-dark .nav-link::after {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 2px;
-            bottom: 0;
-            left: 50%;
-            background-color: #ff4b2b;
-            transition: all 0.3s ease;
-            transform: translateX(-50%);
-        }
-
-        .navbar-dark .nav-link:hover::after {
-            width: 80%;
         }
 
         .cart-icon-wrapper {
@@ -111,7 +79,7 @@
         
         .user-dropdown-toggle:hover img {
             transform: scale(1.1);
-            box-shadow: 0 4px 10px rgba(255,75,43,0.3);
+            box-shadow: 0 4px 10px rgba(212,175,55,0.3);
         }
 
         /* Mobile Bottom Navigation */
@@ -146,12 +114,50 @@
         }
 
         .bottom-nav-item.active {
-            color: #ff4b2b;
+            color: var(--primary-color);
             font-weight: bold;
         }
         
         .bottom-nav-item:hover {
-            color: #ff4b2b;
+            color: var(--primary-color);
+        }
+
+        .premium-dark-footer {
+            background: #1e2024; /* Giữ nền tối như ý người dùng */
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            color: #ffffff;
+            position: relative;
+            z-index: 10;
+        }
+        .premium-dark-footer h5 {
+            color: #ffffff;
+        }
+        .premium-dark-footer a {
+            color: #ffffff !important;
+        }
+        .premium-dark-footer .text-muted {
+            color: rgba(255, 255, 255, 0.9) !important; /* Đổi màu xám thành trắng */
+        }
+        .premium-dark-footer .social-icon {
+            color: #ffffff;
+            transition: color 0.3s ease, transform 0.3s ease;
+        }
+        .premium-dark-footer .social-icon:hover {
+            color: var(--primary-color) !important;
+            transform: translateY(-3px);
+        }
+        
+        .body-content {
+            min-height: calc(100vh - 350px); /* Push footer down */
+            position: relative;
+        }
+
+        /* Đảm bảo tất cả Modal luôn hiển thị phía trên Modal Backdrop */
+        .modal {
+            z-index: 1060 !important;
+        }
+        .modal-backdrop {
+            z-index: 1050 !important;
         }
 
         @@media (max-width: 768px) {
@@ -162,13 +168,98 @@
                 padding-bottom: 60px; /* Space for bottom nav */
             }
         }
+        /* ========================================================
+           SweetAlert2 Custom Toast (Vị trí & Màu sắc)
+           - Dời xuống dưới thanh navbar để không che các chức năng phía trên
+           - Đổi màu nền tối sang trọng để không trùng hòa lẫn với nền trắng
+           ======================================================== */
+        .swal2-container.swal2-top-end,
+        .swal2-container.swal2-top-right {
+            top: 85px !important;
+            right: 25px !important;
+            z-index: 99999 !important;
+        }
+
+        .swal2-popup.swal2-toast {
+            background: #1e2024 !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-left: 4px solid #10b981 !important;
+            border-radius: 12px !important;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35), 0 4px 10px rgba(0, 0, 0, 0.2) !important;
+            padding: 12px 18px !important;
+        }
+
+        .swal2-popup.swal2-toast .swal2-title {
+            color: #ffffff !important;
+            font-size: 0.95rem !important;
+            font-weight: 600 !important;
+            margin: 0 10px !important;
+        }
+
+        .swal2-popup.swal2-toast .swal2-html-container {
+            color: #d1d5db !important;
+            font-size: 0.85rem !important;
+        }
+
+        /* Icon Success */
+        .swal2-popup.swal2-toast.swal2-icon-success,
+        .swal2-popup.swal2-toast .swal2-icon.swal2-success {
+            border-color: #10b981 !important;
+            color: #10b981 !important;
+        }
+        .swal2-popup.swal2-toast.swal2-icon-success {
+            border-left-color: #10b981 !important;
+        }
+        .swal2-popup.swal2-toast .swal2-icon.swal2-success .swal2-success-ring {
+            border-color: rgba(16, 185, 129, 0.4) !important;
+        }
+        .swal2-popup.swal2-toast .swal2-icon.swal2-success [class^='swal2-success-line'] {
+            background-color: #10b981 !important;
+        }
+
+        /* Icon Info */
+        .swal2-popup.swal2-toast.swal2-icon-info,
+        .swal2-popup.swal2-toast .swal2-icon.swal2-info {
+            border-color: #3b82f6 !important;
+            color: #3b82f6 !important;
+        }
+        .swal2-popup.swal2-toast.swal2-icon-info {
+            border-left-color: #3b82f6 !important;
+        }
+
+        /* Icon Warning */
+        .swal2-popup.swal2-toast.swal2-icon-warning,
+        .swal2-popup.swal2-toast .swal2-icon.swal2-warning {
+            border-color: #f59e0b !important;
+            color: #f59e0b !important;
+        }
+        .swal2-popup.swal2-toast.swal2-icon-warning {
+            border-left-color: #f59e0b !important;
+        }
+
+        /* Icon Error */
+        .swal2-popup.swal2-toast.swal2-icon-error,
+        .swal2-popup.swal2-toast .swal2-icon.swal2-error {
+            border-color: #ef4444 !important;
+            color: #ef4444 !important;
+        }
+        .swal2-popup.swal2-toast.swal2-icon-error {
+            border-left-color: #ef4444 !important;
+        }
+
+        /* Timer progress bar */
+        .swal2-popup.swal2-toast .swal2-timer-progress-bar {
+            background: #10b981 !important;
+            height: 3px !important;
+        }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark glass-nav sticky-top shadow-sm py-2">
         <div class="container">
-            <a class="navbar-brand fw-bold fs-3 text-gradient" href="@Url.Action("TrangChu", "Home")">
-                <img src="~/images/logo.jpg" alt="TapFood" style="height: 30px; margin-right: 8px; border-radius: 4px;" />TapFood
+            <a class="navbar-brand fw-bold fs-3 text-gradient d-flex align-items-center" href="@Url.Action("TrangChu", "Home")">
+                <img src="~/images/logo.png?v=6" alt="TapFood" style="height: 40px; margin-right: 15px;" />TapFood
             </a>
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -176,17 +267,17 @@
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto align-items-center">
-                    <li class="nav-item"><a class="nav-link" href="@Url.Action("TrangChu", "Home")">Trang chủ</a></li>
-                    <li class="nav-item"><a class="nav-link require-login" href="@Url.Action("DanhMuc", "Home")">Danh mục</a></li>
-                    <li class="nav-item"><a class="nav-link require-login" href="@Url.Action("NhaHang", "Home")">Nhà hàng nổi bật</a></li>
+                    <li class="nav-item"><a class="nav-link nav-link-custom" href="@Url.Action("TrangChu", "Home")">Trang chủ</a></li>
+                    <li class="nav-item"><a class="nav-link nav-link-custom require-login" href="@Url.Action("DanhMuc", "Home")">Danh mục</a></li>
+                    <li class="nav-item"><a class="nav-link nav-link-custom require-login" href="@Url.Action("NhaHang", "Home")">Nhà hàng nổi bật</a></li>
 
                     @if (tk != null)
                     {
                         if (tk.VaiTro == "KhachHang")
                         {
-                            <li class="nav-item"><a class="nav-link" href="@Url.Action("DonHangCuaToi", "KhachHang")">Đơn hàng</a></li>
+                            <li class="nav-item"><a class="nav-link nav-link-custom" href="@Url.Action("DonHangCuaToi", "KhachHang")">Đơn hàng</a></li>
                             <li class="nav-item ms-2">
-                                <a class="nav-link position-relative d-flex align-items-center cart-icon-wrapper" href="@Url.Action("XemGioHang", "KhachHang")">
+                                <a class="nav-link nav-link-custom position-relative d-flex align-items-center cart-icon-wrapper" href="@Url.Action("XemGioHang", "KhachHang")">
                                     <i class="fa-solid fa-cart-shopping me-1 fs-5"></i> Giỏ hàng
                                     <span id="cartBadge" class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle" style="display: none; font-size: 0.7rem; box-shadow: 0 2px 5px rgba(220,53,69,0.5);">0</span>
                                 </a>
@@ -248,7 +339,7 @@
                         </li>
                     }
                     <li class="nav-item d-none align-self-center ms-3" id="installContainer">
-                        <button id="btnInstall" class="btn btn-sm btn-danger rounded-pill shadow-sm px-3" style="background: linear-gradient(135deg, #ff416c, #ff4b2b); border: none;">
+                        <button id="btnInstall" class="btn btn-sm btn-primary-custom rounded-pill shadow-sm px-3" style="border: none;">
                             <i class="fa-solid fa-download me-1"></i> Tải App
                         </button>
                     </li>
@@ -264,8 +355,8 @@
     <!-- Modal Đăng nhập Toàn cục -->
     <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
+            <div class="modal-content premium-card" style="color: var(--text-main);">
+                <div class="modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.05);">
                     <h5 class="modal-title">Đăng nhập</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
                 </div>
@@ -282,15 +373,17 @@
                         <div id="loginError" class="text-danger mb-2" style="display:none;"></div>
                         <button type="submit" class="btn btn-primary-custom w-100">Đăng nhập</button>
                     </form>
+                    <div style="display:flex; align-items:center; gap:12px; color:rgba(255,255,255,0.4); font-size:0.85rem; margin:1rem 0;"><span style="flex:1; height:1px; background:rgba(255,255,255,0.1);"></span>hoặc<span style="flex:1; height:1px; background:rgba(255,255,255,0.1);"></span></div>
+                    <div id="googleModalBtnContainer" style="display:flex; justify-content:center;"></div>
                 </div>
             </div>
         </div>
     </div>
-    <footer class="bg-dark text-light pt-5 pb-4 mt-5">
+    <footer class="premium-dark-footer pt-5 pb-4 mt-5">
         <div class="container">
             <div class="row">
                 <div class="col-md-4 mb-4">
-                    <h5 class="fw-bold mb-3"><img src="~/images/logo.jpg" alt="TapFood" style="height: 24px; margin-right: 8px; border-radius: 4px;" />TapFood</h5>
+                    <h5 class="fw-bold mb-3 d-flex align-items-center"><img src="~/images/logo.png?v=6" alt="TapFood" style="height: 35px; margin-right: 15px;" />TapFood</h5>
                     <p class="text-muted">Nền tảng đặt đồ ăn trực tuyến hàng đầu, mang đến bữa ăn ngon miệng và nhanh chóng cho bạn mỗi ngày.</p>
                 </div>
                 <div class="col-md-4 mb-4">
@@ -306,18 +399,16 @@
                     <p class="text-muted mb-2"><i class="fa-solid fa-phone me-2"></i> 1900 9999</p>
                     <p class="text-muted mb-2"><i class="fa-solid fa-envelope me-2"></i> support@tapfood.vn</p>
                     <div class="mt-3">
-                        <a href="#" class="text-light me-3 fs-5"><i class="fa-brands fa-facebook"></i></a>
-                        <a href="#" class="text-light me-3 fs-5"><i class="fa-brands fa-instagram"></i></a>
+                        <a href="#" class="social-icon me-3 fs-5"><i class="fa-brands fa-facebook"></i></a>
+                        <a href="#" class="social-icon me-3 fs-5"><i class="fa-brands fa-instagram"></i></a>
                     </div>
                 </div>
             </div>
-            <hr class="border-secondary mt-4 mb-4" />
+            <hr class="border-light mt-4 mb-4" style="opacity: 0.2;" />
             <div class="text-center text-muted small">
                 &copy; @DateTime.Now.Year - TapFood Delivery. All rights reserved.
             </div>
         </div>
-    </footer>
-
     </footer>
 
     <!-- Mobile Bottom Navigation (Chỉ hiện trên điện thoại) -->
@@ -357,7 +448,6 @@
 
     @Scripts.Render("~/bundles/jquery")
     <script src="@Url.Content("~/Scripts/bootstrap.bundle.min.js")"></script>
-    @Scripts.Render("~/bundles/bootstrap")
     
     @if (tk != null && tk.VaiTro == "KhachHang")
     {
@@ -397,6 +487,12 @@
 
         $(document).ready(function () {
             updateCartBadge();
+            
+            // Di chuyển tất cả modal ra trực tiếp thẻ body để tránh bị bất kỳ parent stacking context nào làm backdrop che khuất
+            $('.modal').appendTo('body');
+            $(document).on('show.bs.modal', '.modal', function () {
+                $(this).appendTo('body');
+            });
             
             // Xóa tính năng setInterval tự động polling để giảm tải server
             
@@ -601,6 +697,60 @@
         });
     </script>
     
+    <!-- GSAP for Antigravity UI Animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    
+    <!-- Google Sign-In for Modal -->
+    <script>
+        function handleGoogleModalCredential(response) {
+            $.ajax({
+                url: '/Account/GoogleLogin',
+                type: 'POST',
+                data: { credential: response.credential },
+                success: function (res) {
+                    if (res.success) {
+                        var modal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
+                        if (modal) modal.hide();
+                        location.reload();
+                    } else {
+                        $('#loginError').text(res.message).show();
+                    }
+                },
+                error: function () {
+                    $('#loginError').text("Có lỗi xảy ra khi đăng nhập Google.").show();
+                }
+            });
+        }
+
+        window.addEventListener('load', function() {
+            if (typeof google !== 'undefined' && google.accounts) {
+                google.accounts.id.initialize({
+                    client_id: '@googleClientId',
+                    callback: handleGoogleModalCredential
+                });
+                var modalBtn = document.getElementById('googleModalBtnContainer');
+                if (modalBtn) {
+                    google.accounts.id.renderButton(
+                        modalBtn,
+                        {
+                            theme: 'outline',
+                            size: 'large',
+                            width: 300,
+                            text: 'signin_with',
+                            shape: 'rectangular',
+                            logo_alignment: 'left'
+                        }
+                    );
+                }
+            }
+        });
+    </script>
+
+    <!-- Antigravity Animation Engine -->
+    <script src="@Url.Content("~/Scripts/antigravity/antigravity.js")"></script>
+    <script src="@Url.Content("~/Scripts/animations-3d.js")"></script>
+
     @RenderSection("scripts", required: false)
 </body>
 </html>

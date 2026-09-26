@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antigravity Animation - TapFood Interactive Demo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            width: 100%; height: 100%;
+            overflow: hidden;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #0f1115;
+            color: #f1f3f5;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1;
+        }
+
+        /* Glassmorphic Overlay Card */
+        .hero-center {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            text-align: center;
+            pointer-events: none;
+            max-width: 650px;
+            padding: 30px;
+        }
+
+        .badge-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            border-radius: 999px;
+            background: rgba(255, 90, 43, 0.15);
+            border: 1px solid rgba(255, 90, 43, 0.3);
+            color: #ff9f1c;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            line-height: 1.15;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #ff9f1c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            font-size: 1.1rem;
+            color: #94a3b8;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        .action-btns {
+            pointer-events: auto;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff5a2b, #ff9f1c);
+            color: white;
+            box-shadow: 0 8px 24px rgba(255, 90, 43, 0.35);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 30px rgba(255, 90, 43, 0.5);
+        }
+
+        .btn-glass {
+            background: rgba(255, 255, 255, 0.08);
+            color: white;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .btn-glass:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        /* Controls Panel */
+        .controls-panel {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            z-index: 20;
+            width: 320px;
+            background: rgba(18, 22, 30, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 10px;
+        }
+        .panel-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #f8fafc;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .fps-counter {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.15);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+        }
+
+        .control-group {
+            margin-bottom: 14px;
+        }
+        .control-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #94a3b8;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .btn-group-sm {
+            display: flex;
+            gap: 6px;
+        }
+        .btn-chip {
+            flex: 1;
+            padding: 6px 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #cbd5e1;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .btn-chip.active, .btn-chip:hover {
+            background: #ff5a2b;
+            color: white;
+            border-color: #ff5a2b;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px; height: 16px;
+            border-radius: 50%;
+            background: #ff5a2b;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 90, 43, 0.5);
+        }
+
+        .top-nav {
+            position: absolute;
+            top: 24px; left: 24px;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand-logo {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        .brand-logo span { color: #ff5a2b; }
+    </style>
+</head>
+<body>
+
+    <!-- Canvas Container -->
+    <div id="canvas-container"></div>
+
+    <!-- Navigation Header -->
+    <div class="top-nav">
+        <a href="/" class="brand-logo">
+            <i class="fa-solid fa-utensils" style="color: #ff5a2b;"></i>
+            Tap<span>Food</span>
+        </a>
+    </div>
+
+    <!-- Center Hero -->
+    <div class="hero-center">
+        <div class="badge-pill">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> Antigravity GPU Physics
+        </div>
+        <h1>Lơ lửng Không Trọng Lực</h1>
+        <p class="subtitle">
+            Mô phỏng chuyển động hình học đỉnh cao từ Google Material Design. Tăng tốc phần cứng GPU, tương tác phản lực chuột và công nghệ định hình Pattern linh hoạt.
+        </p>
+        <div class="action-btns">
+            <button class="btn btn-primary" onclick="triggerExplode()">
+                <i class="fa-solid fa-bolt"></i> Nổ Hạt Phản Lực
+            </button>
+            <button class="btn btn-glass" onclick="triggerCelebrate()">
+                <i class="fa-solid fa-gift"></i> Hiệu Ứng Chốt Đơn
+            </button>
+        </div>
+    </div>
+
+    <!-- Controls Panel -->
+    <div class="controls-panel">
+        <div class="panel-header">
+            <div class="panel-title">
+                <i class="fa-solid fa-sliders"></i> Tùy Chỉnh Thời Gian Thực
+            </div>
+            <div class="fps-counter" id="fpsDisplay">60 FPS</div>
+        </div>
+
+        <!-- Pattern Mode -->
+        <div class="control-group">
+            <div class="control-label">
+                <span>Chế độ Pattern</span>
+            </div>
+            <div class="btn-group-sm">
+                <button class="btn-chip active" onclick="setPattern(false, this)">Tự do</button>
+                <button class="btn-chip" onclick="setPattern('circle', this)">Vòng tròn</button>
+                <button class="btn-chip" onclick="setPattern('square', this)">Hình vuông</button>
+                <button class="btn-chip" onclick="setPattern('triangle', this)">Tam giác</button>
+            </div>
+        </div>
+
+        <!-- Palette Selection -->
+        <div class="control-group">
+            <div class="control-label">
+                <span>Bộ màu (Palette)</span>
+            </div>
+            <div class="btn-group-sm">
+                <button class="btn-chip active" onclick="setPalette('tapfood', this)">TapFood</button>
+                <button class="btn-chip" onclick="setPalette('google', this)">Google</button>
+                <button class="btn-chip" onclick="setPalette('gold', this)">Vàng kim</button>
+                <button class="btn-chip" onclick="setPalette('confetti', this)">Lễ hội</button>
+            </div>
+        </div>
+
+        <!-- Shape Selection -->
+        <div class="control-group">
+            <div class="control-label">
+                <span>Hình dáng</span>
+            </div>
+            <div class="btn-group-sm">
+                <button class="btn-chip active" onclick="setShape('mixed', this)">Hỗn hợp</button>
+                <button class="btn-chip" onclick="setShape('circle', this)">Tròn</button>
+                <button class="btn-chip" onclick="setShape('square', this)">Vuông</button>
+                <button class="btn-chip" onclick="setShape('triangle', this)">Tam giác</button>
+            </div>
+        </div>
+
+        <!-- Gravity Slider -->
+        <div class="control-group">
+            <div class="control-label">
+                <span>Trọng lực (Gravity)</span>
+                <span id="gravityVal" style="color: #ff9f1c;">-0.05</span>
+            </div>
+            <input type="range" min="-0.25" max="0.25" step="0.01" value="-0.05" oninput="changeGravity(this.value)">
+        </div>
+
+        <!-- Speed Slider -->
+        <div class="control-group">
+            <div class="control-label">
+                <span>Tốc độ (Speed)</span>
+                <span id="speedVal" style="color: #ff9f1c;">0.8x</span>
+            </div>
+            <input type="range" min="0.2" max="3" step="0.1" value="0.8" oninput="changeSpeed(this.value)">
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="antigravity.js"></script>
+    <script>
+        var container = document.getElementById('canvas-container');
+        var engine = new Antigravity(container, {
+            particleCount: 65,
+            palette: 'tapfood',
+            gravity: -0.05,
+            speed: 0.8,
+            shape: 'mixed',
+            pattern: false,
+            interactive: true,
+            repelForce: 4.5
+        });
+
+        // Interactive controls
+        function setPattern(type, btn) {
+            engine.setPattern(type);
+            setActive(btn);
+        }
+
+        function setPalette(name, btn) {
+            engine.setPalette(name);
+            setActive(btn);
+        }
+
+        function setShape(shape, btn) {
+            engine.options.shape = shape;
+            engine.initParticles();
+            setActive(btn);
+        }
+
+        function changeGravity(val) {
+            engine.setGravity(val);
+            document.getElementById('gravityVal').innerText = val;
+        }
+
+        function changeSpeed(val) {
+            engine.options.speed = parseFloat(val);
+            document.getElementById('speedVal').innerText = val + 'x';
+        }
+
+        function triggerExplode() {
+            engine.explode(window.innerWidth / 2, window.innerHeight / 2, 25);
+        }
+
+        function triggerCelebrate() {
+            Antigravity.celebrate({
+                particleCount: 100,
+                duration: 3500,
+                palette: 'tapfood'
+            });
+        }
+
+        function setActive(btn) {
+            var group = btn.parentElement;
+            var chips = group.querySelectorAll('.btn-chip');
+            chips.forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        // FPS calculation
+        var fpsDisplay = document.getElementById('fpsDisplay');
+        var frameCount = 0;
+        var lastTime = performance.now();
+
+        function updateFPS() {
+            frameCount++;
+            var now = performance.now();
+            if (now - lastTime >= 1000) {
+                var fps = Math.round((frameCount * 1000) / (now - lastTime));
+                fpsDisplay.innerText = fps + ' FPS';
+                frameCount = 0;
+                lastTime = now;
+            }
+            requestAnimationFrame(updateFPS);
+        }
+        requestAnimationFrame(updateFPS);
+    </script>
+</body>
+</html>

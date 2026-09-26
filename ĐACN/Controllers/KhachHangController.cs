@@ -1,4 +1,5 @@
 using ĐACN.Models;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -7,6 +8,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Threading.Tasks;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -16,10 +18,10 @@ namespace ĐACN.Controllers
 {
     public class KhachHangController : BaseController
     {
-        private const string ORS_API_KEY = "eyJvcmciOiI1YjNjZTM1OTc4NTExMTAwMDFjZjYyNDgiLCJpZCI6ImFhZWYwMjY0NjIzZTRmNGU4MTE2NGQzYzlmZjJkYTYxIiwiaCI6Im11cm11cjY0In0=";
+        private readonly ĐACN.Services.MapRoutingService _mapService = new ĐACN.Services.MapRoutingService();
+        private readonly ĐACN.Services.CacheService _cacheService = new ĐACN.Services.CacheService();
 
         private const double MAX_DELIVERY_RADIUS = 30.0;
-
 
         private bool KiemTraDangNhap()
         {
@@ -34,104 +36,42 @@ namespace ĐACN.Controllers
         }
 
 
-
-
-
-
-        private (double? lat, double? lng) GeoCodeORS(string address)
-        {
-
-            string street = address.Split(',')[0];
-            var res = ValidateAddressRealtime(street, address);
-            if (res.isValid) return (res.lat, res.lng);
-            return (null, null);
-        }
-
-
-
-
-        private double CalculateHaversineDistance(double lat1, double lon1, double lat2, double lon2)
-        {
-            const double R = 6371e3;
-            var phi1 = lat1 * Math.PI / 180;
-            var phi2 = lat2 * Math.PI / 180;
-            var deltaPhi = (lat2 - lat1) * Math.PI / 180;
-            var deltaLambda = (lon2 - lon1) * Math.PI / 180;
-            var a = Math.Sin(deltaPhi / 2) * Math.Sin(deltaPhi / 2) + Math.Cos(phi1) * Math.Cos(phi2) * Math.Sin(deltaLambda / 2) * Math.Sin(deltaLambda / 2);
-            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-            return R * c;
-        }
-
-
-        private dynamic GetRouteDataORS(double startLat, double startLng, double endLat, double endLng)
-        {
-            try
-            {
-                using (var client = new HttpClient())
-                {
-                    client.DefaultRequestHeaders.Add("Authorization", ORS_API_KEY);
-                    string startParam = $"{startLng.ToString(CultureInfo.InvariantCulture)},{startLat.ToString(CultureInfo.InvariantCulture)}";
-                    string endParam = $"{endLng.ToString(CultureInfo.InvariantCulture)},{endLat.ToString(CultureInfo.InvariantCulture)}";
-                    var url = $"https://api.openrouteservice.org/v2/directions/driving-car?start={startParam}&end={endParam}&preference=fastest";
-
-                    var response = client.GetAsync(url).Result;
-                    if (!response.IsSuccessStatusCode) return null;
-
-                    var json = response.Content.ReadAsStringAsync().Result;
-                    var obj = JObject.Parse(json);
-                    var features = obj["features"] as JArray;
-                    if (features == null || features.Count == 0) return null;
-
-                    var geometry = features[0]["geometry"]["coordinates"];
-                    var summary = features[0]["properties"]["summary"];
-
-                    var routePoints = new List<object>();
-                    foreach (var point in geometry)
-                    {
-                        routePoints.Add(new { lat = point[1].Value<double>(), lng = point[0].Value<double>() });
-                    }
-
-                    return new
-                    {
-                        route = routePoints,
-                        distance = summary["distance"].Value<double>(),
-                        duration = summary["duration"].Value<double>()
-                    };
-                }
-            }
-            catch { return null; }
-        }
-
-
         private dynamic GetRouteDataOSRM(double startLat, double startLng, double endLat, double endLng)
         {
             try
             {
-                using (var client = new HttpClient())
+                string coordinates = $"{startLng.ToString(CultureInfo.InvariantCulture)},{startLat.ToString(CultureInfo.InvariantCulture)};{endLng.ToString(CultureInfo.InvariantCulture)},{endLat.ToString(CultureInfo.InvariantCulture)}";
+                string url = $"http://router.project-osrm.org/route/v1/driving/{coordinates}?overview=full&geometries=geojson";
+
+                var json = Task.Run(async () =>
                 {
-                    client.DefaultRequestHeaders.Add("User-Agent", "TapFoodDeliveryApp/1.0");
-                    string coordinates = $"{startLng.ToString(CultureInfo.InvariantCulture)},{startLat.ToString(CultureInfo.InvariantCulture)};{endLng.ToString(CultureInfo.InvariantCulture)},{endLat.ToString(CultureInfo.InvariantCulture)}";
-                    string url = $"http://router.project-osrm.org/route/v1/driving/{coordinates}?overview=full&geometries=geojson";
-                    client.Timeout = TimeSpan.FromSeconds(5);
-
-                    var response = client.GetAsync(url).Result;
-                    if (!response.IsSuccessStatusCode) return null;
-
-                    var json = response.Content.ReadAsStringAsync().Result;
-                    var obj = JObject.Parse(json);
-                    if (obj["routes"] == null || !obj["routes"].Any()) return null;
-
-                    var routeData = obj["routes"][0];
-                    var geometry = routeData["geometry"]["coordinates"];
-
-                    var routePoints = new List<object>();
-                    foreach (var point in geometry)
+                    using (var request = new HttpRequestMessage(HttpMethod.Get, url))
                     {
-                        routePoints.Add(new { lat = point[1].Value<double>(), lng = point[0].Value<double>() });
+                        request.Headers.TryAddWithoutValidation("User-Agent", "TapFoodDeliveryApp/1.0");
+                        var response = await _sharedHttpClient.SendAsync(request).ConfigureAwait(false);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            return await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                        }
                     }
+                    return null;
+                }).GetAwaiter().GetResult();
 
-                    return new { route = routePoints, distance = routeData["distance"].Value<double>(), duration = routeData["duration"].Value<double>() };
+                if (string.IsNullOrEmpty(json)) return null;
+
+                var obj = JObject.Parse(json);
+                if (obj["routes"] == null || !obj["routes"].Any()) return null;
+
+                var routeData = obj["routes"][0];
+                var geometry = routeData["geometry"]["coordinates"];
+
+                var routePoints = new List<object>();
+                foreach (var point in geometry)
+                {
+                    routePoints.Add(new { lat = point[1].Value<double>(), lng = point[0].Value<double>() });
                 }
+
+                return new { route = routePoints, distance = routeData["distance"].Value<double>(), duration = routeData["duration"].Value<double>() };
             }
             catch { return null; }
         }
@@ -181,10 +121,17 @@ namespace ĐACN.Controllers
 
 
 
-        public ActionResult XemMenu(string id)
+        [HttpGet]
+        public JsonResult GetToppings(string id)
+        {
+            var toppings = DACN.Models.Customizations.CustomizationService.GetCustomizationForDish(id);
+            return Json(new { success = true, data = toppings }, JsonRequestBehavior.AllowGet);
+        }
+
+        public async Task<ActionResult> XemMenu(string id)
         {
             if (!KiemTraDangNhap()) { TempData["Msg"] = "Vui lòng đăng nhập!"; return RedirectToAction("TrangChu", "Home"); }
-            var nhaHang = db.NhaHangs.Include("TaiKhoan").FirstOrDefault(n => n.MaNH == id);
+            var nhaHang = await db.NhaHangs.Include("TaiKhoan").FirstOrDefaultAsync(n => n.MaNH == id);
             if (nhaHang == null) return HttpNotFound();
 
             if (nhaHang.TaiKhoan == null || nhaHang.TaiKhoan.TrangThai == false)
@@ -193,9 +140,17 @@ namespace ĐACN.Controllers
                 return RedirectToAction("TrangChu", "Home");
             }
 
-            var dsMon = db.MonAns.Where(m => m.MaNH == id).Select(m => new MonAnViewModel { MaMon = m.MaMon, TenMon = m.TenMon, Gia = m.Gia ?? 0, MoTa = m.MoTa, HinhAnh = m.HinhAnh }).ToList();
-            var listReviews = db.DanhGiaNhaHangs.Where(dg => dg.MaNH == id).Include(dg => dg.KhachHang).OrderByDescending(dg => dg.ThoiGian).ToList()
+            string menuCacheKey = $"Menu_NhaHang_{id}";
+            var dsMon = await _cacheService.GetOrSetAsync(menuCacheKey, 5, async () =>
+            {
+                var mons = await db.MonAns.Where(m => m.MaNH == id).ToListAsync();
+                return mons.Select(m => new MonAnViewModel { MaMon = m.MaMon, TenMon = m.TenMon, Gia = m.Gia ?? 0, MoTa = m.MoTa, HinhAnh = m.HinhAnh }).ToList();
+            });
+            
+            var danhGias = await db.DanhGiaNhaHangs.Where(dg => dg.MaNH == id).Include(dg => dg.KhachHang).OrderByDescending(dg => dg.ThoiGian).ToListAsync();
+            var listReviews = danhGias
                 .Select(dg => new ReviewDisplayModel { TenKH = dg.KhachHang != null ? dg.KhachHang.TenKH : "Khách ẩn danh", SoSao = dg.SoSao ?? 5, BinhLuan = dg.BinhLuan, ThoiGian = dg.ThoiGian ?? DateTime.Now }).ToList();
+                
             ViewBag.NhaHang = nhaHang;
             ViewBag.DanhSachDanhGia = listReviews;
             ViewBag.DiemTrungBinh = listReviews.Any() ? Math.Round(listReviews.Average(x => x.SoSao), 1) : 0;
@@ -204,12 +159,14 @@ namespace ĐACN.Controllers
         }
 
         [HttpPost]
-        public JsonResult ThemVaoGio(string id, string note)
+        public async Task<JsonResult> ThemVaoGio(string id, string note, decimal extraPrice = 0)
         {
             if (!KiemTraDangNhap())
             {
                 return Json(new { success = false, message = "Vui lòng đăng nhập!" }, JsonRequestBehavior.AllowGet);
             }
+
+            if (extraPrice < 0) extraPrice = 0;
 
             XoaLichSuQuaHan();
             var mon = db.MonAns.Include("NhaHang.TaiKhoan").FirstOrDefault(m => m.MaMon == id);
@@ -218,34 +175,52 @@ namespace ĐACN.Controllers
                 return Json(new { success = false, message = "Món ăn không tồn tại." }, JsonRequestBehavior.AllowGet);
             }
 
+            if (mon.TrangThai == false)
+            {
+                return Json(new { success = false, message = "Món ăn này hiện đang tạm ngừng bán." }, JsonRequestBehavior.AllowGet);
+            }
+
             if (mon.NhaHang == null || mon.NhaHang.TaiKhoan == null || mon.NhaHang.TaiKhoan.TrangThai == false)
             {
                 return Json(new { success = false, message = "Nhà hàng này hiện đang bị khóa và không thể đặt món." }, JsonRequestBehavior.AllowGet);
             }
 
             string maKH = Session["MaKH"] as string;
-
             string normalizedNote = (note ?? "").Trim();
-
 
             var lsgh = db.LichSuGioHangs.FirstOrDefault(
                 x => x.MaKH == maKH
                   && x.MaMon == mon.MaMon
-                  && ((x.Note ?? "") == normalizedNote));
+                  && ((x.Note ?? "") == normalizedNote)
+                  && x.DonGia == (mon.Gia ?? 0) + extraPrice);
 
             if (lsgh == null)
             {
-                string lastMaGH = db.LichSuGioHangs.OrderByDescending(x => x.MaGH).Select(x => x.MaGH).FirstOrDefault();
-                int nextId = lastMaGH != null && lastMaGH.StartsWith("GH") && int.TryParse(lastMaGH.Substring(2), out int currentId) ? currentId + 1 : 1;
+                var allMaGH = db.LichSuGioHangs
+                    .Where(x => x.MaGH.StartsWith("GH"))
+                    .Select(x => x.MaGH)
+                    .ToList();
+
+                int nextId = 1;
+                if (allMaGH.Any())
+                {
+                    nextId = allMaGH.Select(m => {
+                        if (m.Length > 2 && int.TryParse(m.Substring(2), out int val)) return val;
+                        return 0;
+                    }).DefaultIfEmpty(0).Max() + 1;
+                }
+                
+                decimal finalPrice = (mon.Gia ?? 0) + extraPrice;
+                
                 db.LichSuGioHangs.Add(new LichSuGioHang
                 {
-                    MaGH = "GH" + nextId.ToString().PadLeft(5, '0'),
+                    MaGH = "GH" + (nextId < 100000 ? nextId.ToString("D5") : nextId.ToString()),
                     MaKH = maKH,
                     MaNH = mon.MaNH,
                     MaMon = mon.MaMon,
                     SoLuong = 1,
-                    DonGia = mon.Gia ?? 0,
-                    TongTien = mon.Gia ?? 0,
+                    DonGia = finalPrice,
+                    TongTien = finalPrice,
                     ThoiGianChon = DateTime.Now,
                     Note = normalizedNote
                 });
@@ -257,12 +232,12 @@ namespace ĐACN.Controllers
                 lsgh.ThoiGianChon = DateTime.Now;
             }
 
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return Json(new { success = true }, JsonRequestBehavior.AllowGet);
         }
 
         [HttpPost]
-        public ActionResult CapNhatSoLuong(string maGH, int soLuong)
+        public async Task<ActionResult> CapNhatSoLuong(string maGH, int soLuong)
         {
             if (!KiemTraDangNhap()) return RedirectToAction("TrangChu", "Home");
             string maKH = Session["MaKH"] as string;
@@ -282,7 +257,7 @@ namespace ĐACN.Controllers
         }
 
         [HttpPost]
-        public ActionResult XoaKhoiGio(string maGH)
+        public async Task<ActionResult> XoaKhoiGio(string maGH)
         {
             if (!KiemTraDangNhap()) return Json(new { success = false }, JsonRequestBehavior.AllowGet);
             string maKH = Session["MaKH"] as string;
@@ -296,7 +271,7 @@ namespace ĐACN.Controllers
         }
 
         [HttpPost]
-        public JsonResult CapNhatGhiChu(string maGH, string note)
+        public async Task<JsonResult> CapNhatGhiChu(string maGH, string note)
         {
             if (!KiemTraDangNhap())
             {
@@ -317,7 +292,41 @@ namespace ĐACN.Controllers
         }
 
 
-        public ActionResult XemGioHang()
+        [HttpPost]
+        public async Task<ActionResult> ApDungVoucher(string maVoucher, string loaiYeuCau, decimal phiShip = 0)
+        {
+            if (!KiemTraDangNhap()) return Json(new { success = false, message = "Vui lòng đăng nhập!" });
+            
+            if (string.IsNullOrWhiteSpace(maVoucher))
+            {
+                if (loaiYeuCau == "Mon") { Session["AppliedVoucherMon"] = null; Session["DiscountAmountMon"] = null; }
+                else if (loaiYeuCau == "Ship") { Session["AppliedVoucherShip"] = null; Session["DiscountAmountShip"] = null; }
+                return Json(new { success = true, message = "Đã gỡ mã", discount = 0 });
+            }
+            
+            string maKH = Session["MaKH"] as string;
+            // Tính tổng tiền các món trong giỏ
+            decimal tongTienMon = db.LichSuGioHangs.Where(x => x.MaKH == maKH).Sum(x => (decimal?)x.TongTien) ?? 0m;
+            
+            if (tongTienMon == 0) return Json(new { success = false, message = "Giỏ hàng rỗng!" });
+
+            var result = ĐACN.Models.VoucherStore.TinhToanGiamGia(maVoucher, loaiYeuCau, tongTienMon, phiShip);
+            
+            if (result.Success)
+            {
+                if (loaiYeuCau == "Mon") { Session["AppliedVoucherMon"] = maVoucher; Session["DiscountAmountMon"] = result.DiscountAmount; }
+                else if (loaiYeuCau == "Ship") { Session["AppliedVoucherShip"] = maVoucher; Session["DiscountAmountShip"] = result.DiscountAmount; }
+            }
+            else
+            {
+                if (loaiYeuCau == "Mon") { Session["AppliedVoucherMon"] = null; Session["DiscountAmountMon"] = null; }
+                else if (loaiYeuCau == "Ship") { Session["AppliedVoucherShip"] = null; Session["DiscountAmountShip"] = null; }
+            }
+
+            return Json(new { success = result.Success, message = result.Message, discount = result.DiscountAmount });
+        }
+
+        public async Task<ActionResult> XemGioHang()
         {
             if (!KiemTraDangNhap()) return RedirectToAction("TrangChu", "Home");
             string maKH = Session["MaKH"] as string; XoaLichSuQuaHan();
@@ -375,7 +384,7 @@ namespace ĐACN.Controllers
                 {
                     double dist = 0;
 
-                    dynamic route = GetRouteDataORS(nhLat, nhLng, khLat, khLng);
+                    dynamic route = await _mapService.GetRouteDataORSAsync(nhLat, nhLng, khLat, khLng);
 
 
                     if (route == null) route = GetRouteDataOSRM(nhLat, nhLng, khLat, khLng);
@@ -387,7 +396,7 @@ namespace ĐACN.Controllers
                     else
                     {
 
-                        dist = CalculateHaversineDistance(nhLat, nhLng, khLat, khLng);
+                        dist = _mapService.CalculateHaversineDistance(nhLat, nhLng, khLat, khLng);
                     }
 
 
@@ -400,8 +409,33 @@ namespace ĐACN.Controllers
             ViewBag.PhiShip = phiShip;
             ViewBag.PhiDichVu = phiDichVu;
             ViewBag.KhoangCach = khoangCach;
-            ViewBag.TongTienHang = cart.Sum(x => (decimal)x.ThanhTien);
-            ViewBag.TongThanhToan = cart.Sum(x => (decimal)x.ThanhTien) + phiShip + phiDichVu;
+            decimal tongTienHang = cart.Sum(x => (decimal)x.ThanhTien);
+            
+            decimal discountAmountMon = 0;
+            if (Session["DiscountAmountMon"] != null) discountAmountMon = (decimal)Session["DiscountAmountMon"];
+            
+            decimal discountAmountShip = 0;
+            if (Session["DiscountAmountShip"] != null) discountAmountShip = (decimal)Session["DiscountAmountShip"];
+
+            // Recalculate ship discount just in case phiShip changed
+            if (Session["AppliedVoucherShip"] != null)
+            {
+                var recalc = ĐACN.Models.VoucherStore.TinhToanGiamGia((string)Session["AppliedVoucherShip"], "Ship", tongTienHang, phiShip);
+                if (recalc.Success) discountAmountShip = recalc.DiscountAmount;
+            }
+
+            ViewBag.TongTienHang = tongTienHang;
+            ViewBag.TongThanhToan = tongTienHang + phiShip + phiDichVu - discountAmountMon - discountAmountShip;
+            
+            // Đảm bảo không âm
+            if (ViewBag.TongThanhToan < 0) ViewBag.TongThanhToan = 0;
+
+            ViewBag.GiamGiaMon = discountAmountMon;
+            ViewBag.GiamGiaShip = discountAmountShip;
+            ViewBag.MaVoucherMon = Session["AppliedVoucherMon"] as string;
+            ViewBag.MaVoucherShip = Session["AppliedVoucherShip"] as string;
+            
+            ViewBag.DanhSachVoucher = ĐACN.Models.VoucherStore.DanhSachVoucher.Where(x => x.IsActive).ToList();
 
             ViewBag.DiaChiGiao = kh?.DiaChi;
             ViewBag.SDT = kh?.SDT;
@@ -412,7 +446,7 @@ namespace ĐACN.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult DatHang(string maNH, string selectedItems, string diaChi, string phuongXa, string quanHuyen, string tinhTP, string sdt, string phuongThucTT)
+        public async Task<ActionResult> DatHang(string maNH, string selectedItems, string diaChi, string phuongXa, string quanHuyen, string tinhTP, string sdt, string phuongThucTT)
         {
             if (!KiemTraDangNhap()) { TempData["Msg"] = "Vui lòng đăng nhập!"; return RedirectToAction("TrangChu", "Home"); }
             string maKH = Session["MaKH"] as string;
@@ -477,7 +511,7 @@ namespace ĐACN.Controllers
             if (nhLat != 0)
             {
 
-                dynamic route = GetRouteDataORS(nhLat, nhLng, latKH, lngKH);
+                dynamic route = await _mapService.GetRouteDataORSAsync(nhLat, nhLng, latKH, lngKH);
                 if (route == null) route = GetRouteDataOSRM(nhLat, nhLng, latKH, lngKH);
 
                 double dist = 0;
@@ -487,7 +521,7 @@ namespace ĐACN.Controllers
                 }
                 else
                 {
-                    dist = CalculateHaversineDistance(nhLat, nhLng, latKH, lngKH);
+                    dist = _mapService.CalculateHaversineDistance(nhLat, nhLng, latKH, lngKH);
                 }
 
                 if (dist / 1000.0 > MAX_DELIVERY_RADIUS)
@@ -507,7 +541,22 @@ namespace ĐACN.Controllers
             string maDon = "DH" + DateTime.Now.ToString("yyMMddHHmmss") + Guid.NewGuid().ToString("N").Substring(0, 4).ToUpper();
 
             decimal tongTienHang = cart.Sum(x => (decimal)x.TongTien);
-            decimal tongCong = tongTienHang + totalShippingFee;
+            
+            decimal discountAmountMon = 0;
+            if (Session["DiscountAmountMon"] != null) discountAmountMon = (decimal)Session["DiscountAmountMon"];
+            
+            decimal discountAmountShip = 0;
+            if (Session["DiscountAmountShip"] != null) discountAmountShip = (decimal)Session["DiscountAmountShip"];
+
+            // Recalculate ship discount just in case phiShip changed (due to address recalculation on checkout)
+            if (Session["AppliedVoucherShip"] != null)
+            {
+                var recalc = ĐACN.Models.VoucherStore.TinhToanGiamGia((string)Session["AppliedVoucherShip"], "Ship", tongTienHang, phiShip);
+                if (recalc.Success) discountAmountShip = recalc.DiscountAmount;
+            }
+            
+            decimal tongCong = tongTienHang + totalShippingFee - discountAmountMon - discountAmountShip;
+            if (tongCong < 0) tongCong = 0;
 
             using (var transaction = db.Database.BeginTransaction())
             {
@@ -520,7 +569,7 @@ namespace ĐACN.Controllers
                         MaNH = maNH,
                         DiaChiGiaoHang = finalDiaChi,
                         SDTGiaoHang = sdt,
-                        TrangThai = "Chờ xác nhận",
+                        TrangThai = phuongThucTT == "VNPay" ? "Chờ thanh toán VNPay" : "Chờ xác nhận",
                         TongTien = tongCong,
                         ThoiGianDat = DateTime.Now,
                         Latitude = latKH,
@@ -531,19 +580,24 @@ namespace ĐACN.Controllers
 
                     foreach (var item in cart)
                     {
-                        var monAn = db.MonAns.Find(item.MaMon);
                         db.ChiTietDonHangs.Add(new ChiTietDonHang
                         {
                             MaDon = maDon,
                             MaMon = item.MaMon,
                             SoLuong = item.SoLuong,
-                            DonGia = monAn != null ? monAn.Gia : item.DonGia,
+                            DonGia = item.DonGia, // Lấy nguyên DonGia từ Giỏ hàng (đã cộng Topping)
                             Note = item.Note
                         });
-                        db.LichSuGioHangs.Remove(item);
                     }
+                    db.LichSuGioHangs.RemoveRange(cart);
                     db.SaveChanges();
                     transaction.Commit();
+                    
+                    // Xoá session voucher sau khi đặt hàng thành công
+                    Session["AppliedVoucherMon"] = null;
+                    Session["DiscountAmountMon"] = null;
+                    Session["AppliedVoucherShip"] = null;
+                    Session["DiscountAmountShip"] = null;
                 }
                 catch
                 {
@@ -557,6 +611,31 @@ namespace ĐACN.Controllers
             {
                 TempData["Msg"] = "Hoàn tất đặt món! Vui lòng thanh toán để hoàn tất đơn hàng.";
                 return RedirectToAction("ThanhToanQR", new { maDon = maDon, tongTien = tongCong });
+            }
+            else if (phuongThucTT == "VNPay")
+            {
+                string vnp_Returnurl = System.Configuration.ConfigurationManager.AppSettings["vnp_Returnurl"];
+                string vnp_Url = System.Configuration.ConfigurationManager.AppSettings["vnp_Url"];
+                string vnp_TmnCode = System.Configuration.ConfigurationManager.AppSettings["vnp_TmnCode"];
+                string vnp_HashSecret = System.Configuration.ConfigurationManager.AppSettings["vnp_HashSecret"];
+
+                ĐACN.Models.VnPayLibrary vnpay = new ĐACN.Models.VnPayLibrary();
+
+                vnpay.AddRequestData("vnp_Version", ĐACN.Models.VnPayLibrary.VERSION);
+                vnpay.AddRequestData("vnp_Command", "pay");
+                vnpay.AddRequestData("vnp_TmnCode", vnp_TmnCode);
+                vnpay.AddRequestData("vnp_Amount", (tongCong * 100).ToString("0")); 
+                vnpay.AddRequestData("vnp_CreateDate", DateTime.Now.ToString("yyyyMMddHHmmss"));
+                vnpay.AddRequestData("vnp_CurrCode", "VND");
+                vnpay.AddRequestData("vnp_IpAddr", ĐACN.Models.Utils.GetIpAddress());
+                vnpay.AddRequestData("vnp_Locale", "vn");
+                vnpay.AddRequestData("vnp_OrderInfo", "Thanh toan don hang:" + maDon);
+                vnpay.AddRequestData("vnp_OrderType", "other");
+                vnpay.AddRequestData("vnp_ReturnUrl", vnp_Returnurl);
+                vnpay.AddRequestData("vnp_TxnRef", maDon);
+
+                string paymentUrl = vnpay.CreateRequestUrl(vnp_Url, vnp_HashSecret);
+                return Redirect(paymentUrl);
             }
             else
             {
@@ -573,7 +652,7 @@ namespace ĐACN.Controllers
             }
         }
 
-        public ActionResult ThanhToanQR(string maDon, decimal tongTien)
+        public async Task<ActionResult> ThanhToanQR(string maDon, decimal tongTien)
         {
             if (!KiemTraDangNhap()) return RedirectToAction("TrangChu", "Home");
             ViewBag.MaDon = maDon;
@@ -583,7 +662,7 @@ namespace ĐACN.Controllers
         }
 
         [HttpPost] 
-        public ActionResult XacNhanThanhToanQR(string maDon) 
+        public async Task<ActionResult> XacNhanThanhToanQR(string maDon) 
         {
             if (!KiemTraDangNhap()) return RedirectToAction("TrangChu", "Home");
             string maKH = Session["MaKH"] as string;
@@ -607,7 +686,7 @@ namespace ĐACN.Controllers
 
 
         [HttpGet]
-        public JsonResult GetDistanceNhaHangToKhachHang(string maNH, string diaChi, string phuongXa, string quanHuyen, string tinhTP, bool? luuDiaChi)
+        public async Task<JsonResult> GetDistanceNhaHangToKhachHang(string maNH, string diaChi, string phuongXa, string quanHuyen, string tinhTP, bool? luuDiaChi)
         {
 
             string fullAddress = $"{diaChi}, {phuongXa}, {quanHuyen}, {tinhTP}";
@@ -627,7 +706,16 @@ namespace ĐACN.Controllers
                 }
             }
 
+            if (string.IsNullOrEmpty(maNH))
+            {
+                return Json(new { success = false, message = "Vui lòng chọn món ăn trong giỏ hàng để tính phí giao hàng." }, JsonRequestBehavior.AllowGet);
+            }
+
             var nh = db.NhaHangs.Find(maNH);
+            if (nh == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy thông tin nhà hàng." }, JsonRequestBehavior.AllowGet);
+            }
             double nhLat = nh.Latitude ?? 0, nhLng = nh.Longitude ?? 0;
             if (nhLat == 0)
             {
@@ -637,7 +725,7 @@ namespace ĐACN.Controllers
             }
 
 
-            var routeData = GetRouteDataORS(nhLat, nhLng, check.lat.Value, check.lng.Value);
+            var routeData = await _mapService.GetRouteDataORSAsync(nhLat, nhLng, check.lat.Value, check.lng.Value);
             if (routeData == null) routeData = GetRouteDataOSRM(nhLat, nhLng, check.lat.Value, check.lng.Value);
 
             double dist = 0;
@@ -652,7 +740,7 @@ namespace ĐACN.Controllers
             }
             else
             {
-                dist = CalculateHaversineDistance(nhLat, nhLng, check.lat.Value, check.lng.Value);
+                dist = _mapService.CalculateHaversineDistance(nhLat, nhLng, check.lat.Value, check.lng.Value);
             }
 
 
@@ -675,15 +763,14 @@ namespace ĐACN.Controllers
         }
 
 
-        public ActionResult DonHangCuaToi()
+        public async Task<ActionResult> DonHangCuaToi()
         {
             if (!KiemTraDangNhap()) { TempData["Msg"] = "Vui lòng đăng nhập để xem đơn hàng!"; return RedirectToAction("TrangChu", "Home"); }
             string maKH = Session["MaKH"] as string;
             if (string.IsNullOrEmpty(maKH)) { var tk = Session["TaiKhoan"] as TaiKhoan; if (tk != null) { var kh = db.KhachHangs.FirstOrDefault(k => k.MaTK == tk.MaTK); if (kh != null) maKH = kh.MaKH; } }
             if (string.IsNullOrEmpty(maKH)) return RedirectToAction("TrangChu", "Home");
 
-            var tatCaDonHang = db.DonHangs.AsNoTracking().ToList();
-            var donCuaKhach = tatCaDonHang.Where(d => d.MaKH != null && d.MaKH.Trim() == maKH.Trim()).OrderByDescending(d => d.ThoiGianDat).ToList();
+            var donCuaKhach = db.DonHangs.AsNoTracking().Where(d => d.MaKH == maKH).OrderByDescending(d => d.ThoiGianDat).ToList();
 
             var donHangDangXuLy = donCuaKhach.Where(d => d.TrangThai == "Chờ xác nhận" || d.TrangThai == "Đang giao" || d.TrangThai == "Đang lấy món").Select(d => new DonHangModel { MaDon = d.MaDon, MaKH = d.MaKH, MaNH = d.MaNH, TrangThai = d.TrangThai, TongTien = d.TongTien ?? 0, ThoiGianDat = d.ThoiGianDat ?? DateTime.Now }).ToList();
             var lichSuDonHang = donCuaKhach.Where(d => d.TrangThai != "Chờ xác nhận" && d.TrangThai != "Đang giao" && d.TrangThai != "Đang lấy món").Select(d => new DonHangModel { MaDon = d.MaDon, MaKH = d.MaKH, MaNH = d.MaNH, TrangThai = d.TrangThai, TongTien = d.TongTien ?? 0, ThoiGianDat = d.ThoiGianDat ?? DateTime.Now }).ToList();
@@ -691,7 +778,7 @@ namespace ĐACN.Controllers
             return View(new DonHangTongHopViewModel { DonHangDangXuLy = donHangDangXuLy, LichSuDonHang = lichSuDonHang });
         }
 
-        public ActionResult TheoDoiDonHang(string maDon)
+        public async Task<ActionResult> TheoDoiDonHang(string maDon)
         {
             if (!KiemTraDangNhap()) { TempData["Msg"] = "Vui lòng đăng nhập!"; return RedirectToAction("TrangChu", "Home"); }
             string maKH = Session["MaKH"] as string;
@@ -730,7 +817,7 @@ namespace ĐACN.Controllers
 
         [HttpGet]
         [OutputCache(NoStore = true, Duration = 0)]
-        public JsonResult GetTrackingInfo(string maDon)
+        public async Task<JsonResult> GetTrackingInfo(string maDon)
         {
             if (!KiemTraDangNhap()) return Json(new { success = false, message = "Chưa đăng nhập" }, JsonRequestBehavior.AllowGet);
             string maKH = Session["MaKH"] as string;
@@ -739,12 +826,12 @@ namespace ĐACN.Controllers
 
 
             double restLat = don.NhaHang?.Latitude ?? 0; double restLng = don.NhaHang?.Longitude ?? 0;
-            if (restLat == 0 && don.NhaHang != null) { var c = GeoCodeORS(don.NhaHang.DiaChi); if (c.lat.HasValue) { restLat = c.lat.Value; restLng = c.lng.Value; } }
+            if (restLat == 0 && don.NhaHang != null) { var c = await _mapService.GeoCodeORSAsync(don.NhaHang.DiaChi); if (c.lat.HasValue) { restLat = c.lat.Value; restLng = c.lng.Value; } }
             var restaurant = (restLat != 0) ? new { lat = restLat, lng = restLng, name = don.NhaHang?.TenNH } : null;
 
 
             double custLat = don.Latitude ?? 0; double custLng = don.Longitude ?? 0;
-            if (custLat == 0) { var c = GeoCodeORS(don.DiaChiGiaoHang); if (c.lat.HasValue) { custLat = c.lat.Value; custLng = c.lng.Value; } }
+            if (custLat == 0) { var c = await _mapService.GeoCodeORSAsync(don.DiaChiGiaoHang); if (c.lat.HasValue) { custLat = c.lat.Value; custLng = c.lng.Value; } }
             var customer = (custLat != 0) ? new { lat = custLat, lng = custLng, name = "Khách hàng" } : null;
 
 
@@ -764,10 +851,25 @@ namespace ĐACN.Controllers
 
         [HttpGet]
         [OutputCache(NoStore = true, Duration = 0)]
-        public JsonResult GetShipperRoute(string maDon)
+        public async Task<JsonResult> GetShipperRoute(string maDon)
         {
             var donHang = db.DonHangs.Include(d => d.NhaHang).FirstOrDefault(d => d.MaDon == maDon);
             if (donHang == null) return Json(new { success = false, message = "Không tìm thấy đơn hàng" }, JsonRequestBehavior.AllowGet);
+
+            string currentMaKH = Session["MaKH"] as string;
+            string currentMaShipper = Session["MaShipper"] as string;
+            string currentMaNH = Session["MaNH"] as string;
+            var tkSession = Session["TaiKhoan"] as TaiKhoan;
+
+            bool isAuthorized = (tkSession?.VaiTro == "Admin")
+                || (!string.IsNullOrEmpty(currentMaKH) && donHang.MaKH == currentMaKH)
+                || (!string.IsNullOrEmpty(currentMaShipper) && donHang.MaShipper == currentMaShipper)
+                || (!string.IsNullOrEmpty(currentMaNH) && donHang.MaNH == currentMaNH);
+
+            if (!isAuthorized)
+            {
+                return Json(new { success = false, message = "Bạn không có quyền xem thông tin đơn hàng này" }, JsonRequestBehavior.AllowGet);
+            }
 
 
             double startLat = 0, startLng = 0;
@@ -783,13 +885,13 @@ namespace ĐACN.Controllers
             {
                 routeType = "ToRestaurant";
                 endLat = donHang.NhaHang?.Latitude ?? 0; endLng = donHang.NhaHang?.Longitude ?? 0;
-                if (endLat == 0 && donHang.NhaHang != null) { var c = GeoCodeORS(donHang.NhaHang.DiaChi); if (c.lat.HasValue) { endLat = c.lat.Value; endLng = c.lng.Value; } }
+                if (endLat == 0 && donHang.NhaHang != null) { var c = await _mapService.GeoCodeORSAsync(donHang.NhaHang.DiaChi); if (c.lat.HasValue) { endLat = c.lat.Value; endLng = c.lng.Value; } }
             }
             else if (status.Contains("đang giao"))
             {
                 routeType = "ToCustomer";
                 endLat = donHang.Latitude ?? 0; endLng = donHang.Longitude ?? 0;
-                if (endLat == 0 && !string.IsNullOrEmpty(donHang.DiaChiGiaoHang)) { var c = GeoCodeORS(donHang.DiaChiGiaoHang); if (c.lat.HasValue) { endLat = c.lat.Value; endLng = c.lng.Value; } }
+                if (endLat == 0 && !string.IsNullOrEmpty(donHang.DiaChiGiaoHang)) { var c = await _mapService.GeoCodeORSAsync(donHang.DiaChiGiaoHang); if (c.lat.HasValue) { endLat = c.lat.Value; endLng = c.lng.Value; } }
             }
 
             if (startLat == 0 || startLng == 0 || endLat == 0 || endLng == 0) return Json(new { success = false, message = "Thiếu tọa độ" }, JsonRequestBehavior.AllowGet);
@@ -799,7 +901,7 @@ namespace ĐACN.Controllers
             double distanceMeters = 0;
 
 
-            var routeData = GetRouteDataORS(startLat, startLng, endLat, endLng);
+            var routeData = await _mapService.GetRouteDataORSAsync(startLat, startLng, endLat, endLng);
 
 
             if (routeData == null) routeData = GetRouteDataOSRM(startLat, startLng, endLat, endLng);
@@ -816,7 +918,7 @@ namespace ĐACN.Controllers
             else
             {
 
-                distanceMeters = CalculateHaversineDistance(startLat, startLng, endLat, endLng);
+                distanceMeters = _mapService.CalculateHaversineDistance(startLat, startLng, endLat, endLng);
                 routeGeometry = GenerateManhattanRoute(startLat, startLng, endLat, endLng);
             }
 
@@ -828,7 +930,7 @@ namespace ĐACN.Controllers
             return Json(new { success = true, route = routeGeometry, distanceText = $"{distanceKm} km", durationText = $"{estimatedMinutes} phút", statusText = routeType == "ToRestaurant" ? "Shipper đang đến nhà hàng" : "Shipper đang giao tới bạn", routeType = routeType }, JsonRequestBehavior.AllowGet);
         }
 
-        public ActionResult VietDanhGia(string maDon)
+        public async Task<ActionResult> VietDanhGia(string maDon)
         {
             if (!KiemTraDangNhap()) { TempData["Msg"] = "Vui lòng đăng nhập!"; return RedirectToAction("TrangChu", "Home"); }
             string maKH = Session["MaKH"] as string;
@@ -843,7 +945,7 @@ namespace ĐACN.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult LuuDanhGia(DanhGiaViewModel model)
+        public async Task<ActionResult> LuuDanhGia(DanhGiaViewModel model)
         {
             if (!KiemTraDangNhap()) return RedirectToAction("TrangChu", "Home");
             string maKH = Session["MaKH"] as string;
@@ -878,12 +980,12 @@ namespace ĐACN.Controllers
                 TempData["Msg"] = "Cảm ơn bạn đã đánh giá dịch vụ!";
                 return RedirectToAction("DonHangCuaToi");
             }
-            catch (Exception ex) { TempData["Msg"] = "Lỗi khi lưu đánh giá: " + ex.Message; return RedirectToAction("VietDanhGia", new { maDon = model.MaDon }); }
+            catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Lỗi lưu đánh giá: " + ex.Message); TempData["Msg"] = "Lỗi khi lưu đánh giá. Vui lòng thử lại sau."; return RedirectToAction("VietDanhGia", new { maDon = model.MaDon }); }
         }
 
 
         [HttpGet]
-        public ActionResult HoSo()
+        public async Task<ActionResult> HoSo()
         {
             if (!KiemTraDangNhap())
             {
@@ -900,7 +1002,7 @@ namespace ĐACN.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult CapNhatHoSo(string tenKH, string sdt, string diaChi, HttpPostedFileBase hinhAnh)
+        public async Task<ActionResult> CapNhatHoSo(string tenKH, string sdt, string diaChi, HttpPostedFileBase hinhAnh)
         {
             if (!KiemTraDangNhap())
             {
@@ -962,7 +1064,7 @@ namespace ĐACN.Controllers
         }
 
         [HttpGet]
-        public ActionResult CaiDat()
+        public async Task<ActionResult> CaiDat()
         {
             if (!KiemTraDangNhap())
             {
@@ -973,7 +1075,8 @@ namespace ĐACN.Controllers
         }
 
         [HttpPost]
-        public ActionResult DoiMatKhau(string matKhauCu, string matKhauMoi, string xacNhanMatKhau)
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> DoiMatKhau(string matKhauCu, string matKhauMoi, string xacNhanMatKhau)
         {
             if (!KiemTraDangNhap()) return RedirectToAction("TrangChu", "Home");
 
@@ -1015,13 +1118,14 @@ namespace ĐACN.Controllers
             }
 
             tk.MatKhau = BCrypt.Net.BCrypt.HashPassword(matKhauMoi);
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             TempData["Msg"] = "Đổi mật khẩu thành công.";
             return RedirectToAction("CaiDat");
         }
 
         [HttpPost]
-        public ActionResult XoaTaiKhoan()
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> XoaTaiKhoan()
         {
             if (!KiemTraDangNhap()) return RedirectToAction("TrangChu", "Home");
 
@@ -1030,14 +1134,18 @@ namespace ĐACN.Controllers
 
             if (tk != null)
             {
-
-
-
                 tk.TrangThai = false;
-                db.SaveChanges();
+                await db.SaveChangesAsync();
 
+                Session.Clear();
+                Session.Abandon();
+                if (Response.Cookies["ASP.NET_SessionId"] != null)
+                {
+                    Response.Cookies["ASP.NET_SessionId"].Expires = DateTime.Now.AddDays(-1);
+                }
 
-                return RedirectToAction("Logout", "Shipper");
+                TempData["Msg"] = "Tài khoản của bạn đã được xóa thành công.";
+                return RedirectToAction("TrangChu", "Home");
             }
 
             TempData["Msg"] = "Lỗi khi xóa tài khoản.";
@@ -1046,7 +1154,7 @@ namespace ĐACN.Controllers
 
 
         [HttpGet]
-        public JsonResult LaySoLuongGioHang()
+        public async Task<JsonResult> LaySoLuongGioHang()
         {
             if (!KiemTraDangNhap())
                 return Json(new { success = false, soLuong = 0 }, JsonRequestBehavior.AllowGet);
@@ -1058,7 +1166,7 @@ namespace ĐACN.Controllers
         }
 
         [HttpGet]
-        public JsonResult LayThongTinGioHang()
+        public async Task<JsonResult> LayThongTinGioHang()
         {
             if (!KiemTraDangNhap())
                 return Json(new { success = false, soLuong = 0, tongTien = 0 }, JsonRequestBehavior.AllowGet);
@@ -1078,7 +1186,7 @@ namespace ĐACN.Controllers
         }
 
 
-        public ActionResult MonAnTheoLoai(string maLoai)
+        public async Task<ActionResult> MonAnTheoLoai(string maLoai)
         {
             if (!KiemTraDangNhap())
             {
@@ -1105,7 +1213,8 @@ namespace ĐACN.Controllers
                     DiaChi = nh.DiaChi,
                     HinhAnh = nh.HinhAnh,
                     TrangThai = nh.TrangThai,
-                    TongLuotMua = db.DonHangs.Count(d => d.MaNH == nh.MaNH)
+                    TongLuotMua = db.DonHangs.Count(d => d.MaNH == nh.MaNH),
+                    Rating = db.DanhGiaNhaHangs.Where(dg => dg.MaNH == nh.MaNH).Average(dg => (double?)dg.SoSao) ?? 5.0
                 }).ToList();
 
             var model = new MonAnTheoLoaiViewModel
@@ -1120,36 +1229,45 @@ namespace ĐACN.Controllers
                 MonAn = new List<MonAnViewModel>()
             };
 
+            ViewBag.TatCaLoai = db.LoaiMonAns.Select(l => new LoaiMonAnViewModel
+            {
+                MaLoai = l.MaLoai,
+                TenLoai = l.TenLoai,
+                HinhAnh = l.HinhAnh
+            }).ToList();
+
             return View(model);
         }
 
 
         [HttpPost]
-        public JsonResult LuuDanhGiaShipper(string maDon, string maShipper, int soSao, string binhLuan)
+        public async Task<JsonResult> LuuDanhGiaShipper(string maDon, string maShipper, int soSao, string binhLuan)
         {
             if (!KiemTraDangNhap())
                 return Json(new { success = false, message = "Vui lòng đăng nhập!" }, JsonRequestBehavior.AllowGet);
 
+            if (soSao < 1) soSao = 1;
+            if (soSao > 5) soSao = 5;
+
             string maKH = Session["MaKH"] as string;
             try
             {
-
                 var donHang = db.DonHangs.FirstOrDefault(d => d.MaDon == maDon && d.MaKH == maKH);
                 if (donHang == null)
                     return Json(new { success = false, message = "Không tìm thấy đơn hàng!" }, JsonRequestBehavior.AllowGet);
 
+                if (donHang.TrangThai != "Hoàn thành")
+                    return Json(new { success = false, message = "Bạn chỉ có thể đánh giá đơn hàng đã hoàn thành!" }, JsonRequestBehavior.AllowGet);
 
                 var existing = db.DanhGiaShippers.FirstOrDefault(d => d.MaDon == maDon && d.MaKH == maKH);
                 if (existing != null)
                 {
-
                     existing.SoSao = soSao;
                     existing.BinhLuan = binhLuan;
                     existing.ThoiGian = DateTime.Now;
                 }
                 else
                 {
-
                     string maDG = "DGS" + Guid.NewGuid().ToString("N").Substring(0, 9).ToUpper();
                     var danhGia = new DanhGiaShipper
                     {
@@ -1163,28 +1281,55 @@ namespace ĐACN.Controllers
                     };
                     db.DanhGiaShippers.Add(danhGia);
                 }
-                db.SaveChanges();
+                await db.SaveChangesAsync();
+
+                // Cập nhật điểm đánh giá trung bình cho Shipper
+                try
+                {
+                    var shipperObj = db.Shippers.FirstOrDefault(s => s.MaShipper == maShipper);
+                    if (shipperObj != null)
+                    {
+                        var allRatings = db.DanhGiaShippers
+                            .Where(d => d.MaShipper == maShipper && d.SoSao != null)
+                            .Select(d => (double)d.SoSao.Value)
+                            .ToList();
+                        if (allRatings.Any())
+                        {
+                            shipperObj.DiemDanhGia = (decimal)Math.Round(allRatings.Average(), 1);
+                            db.Entry(shipperObj).State = EntityState.Modified;
+                            await db.SaveChangesAsync();
+                        }
+                    }
+                }
+                catch { }
+
                 return Json(new { success = true, message = "Đánh giá shipper thành công!" }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Lỗi: " + ex.Message }, JsonRequestBehavior.AllowGet);
+                System.Diagnostics.Debug.WriteLine($"Lỗi lưu đánh giá: {ex.Message}");
+                return Json(new { success = false, message = "Lỗi khi lưu đánh giá. Vui lòng thử lại sau." }, JsonRequestBehavior.AllowGet);
             }
         }
 
         [HttpPost]
-        public JsonResult LuuDanhGiaNhaHang(string maDon, string maNH, int soSao, string binhLuan, HttpPostedFileBase hinhAnhFile = null)
+        public async Task<JsonResult> LuuDanhGiaNhaHang(string maDon, string maNH, int soSao, string binhLuan, HttpPostedFileBase hinhAnhFile = null)
         {
             if (!KiemTraDangNhap())
                 return Json(new { success = false, message = "Vui lòng đăng nhập!" }, JsonRequestBehavior.AllowGet);
 
+            if (soSao < 1) soSao = 1;
+            if (soSao > 5) soSao = 5;
+
             string maKH = Session["MaKH"] as string;
             try
             {
-
                 var donHang = db.DonHangs.FirstOrDefault(d => d.MaDon == maDon && d.MaKH == maKH);
                 if (donHang == null)
                     return Json(new { success = false, message = "Không tìm thấy đơn hàng!" }, JsonRequestBehavior.AllowGet);
+
+                if (donHang.TrangThai != "Hoàn thành")
+                    return Json(new { success = false, message = "Bạn chỉ có thể đánh giá đơn hàng đã hoàn thành!" }, JsonRequestBehavior.AllowGet);
 
 
                 string fileName = null;
@@ -1252,12 +1397,13 @@ namespace ĐACN.Controllers
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Lỗi: " + ex.Message }, JsonRequestBehavior.AllowGet);
+                LogError(ex, "DanhGiaNhaHang");
+                return Json(new { success = false, message = "Lỗi khi lưu đánh giá. Vui lòng thử lại sau." }, JsonRequestBehavior.AllowGet);
             }
         }
 
         [HttpPost]
-        public JsonResult BoQuaDanhGia(string maDon)
+        public async Task<JsonResult> BoQuaDanhGia(string maDon)
         {
             if (!KiemTraDangNhap())
                 return Json(new { success = false }, JsonRequestBehavior.AllowGet);
@@ -1267,7 +1413,7 @@ namespace ĐACN.Controllers
         }
 
         [HttpPost]
-        public JsonResult BoQuaDanhGiaNhaHang(string maDon)
+        public async Task<JsonResult> BoQuaDanhGiaNhaHang(string maDon)
         {
             if (!KiemTraDangNhap())
                 return Json(new { success = false }, JsonRequestBehavior.AllowGet);
@@ -1277,7 +1423,7 @@ namespace ĐACN.Controllers
         }
 
         [HttpGet]
-        public JsonResult LayThongTinDanhGiaNhaHang(string maDon)
+        public async Task<JsonResult> LayThongTinDanhGiaNhaHang(string maDon)
         {
             if (!KiemTraDangNhap())
                 return Json(new { success = false }, JsonRequestBehavior.AllowGet);
@@ -1312,18 +1458,21 @@ namespace ĐACN.Controllers
         }
 
         [HttpGet]
-        public JsonResult LayDonTiepTheoCanDanhGia(string[] skippedOrders)
+        public async Task<JsonResult> LayDonTiepTheoCanDanhGia(string[] skippedOrders)
         {
             if (!KiemTraDangNhap())
                 return Json(new { success = false }, JsonRequestBehavior.AllowGet);
 
             string maKH = Session["MaKH"] as string;
 
+            DateTime limitDate = DateTime.Now.AddDays(-7);
+
             var donCanDanhGiaList = db.DonHangs
                 .Include(d => d.Shipper)
                 .Where(d => d.MaKH == maKH &&
                              (d.TrangThai == "Hoàn thành" || d.TrangThai == "Hoàn tất") &&
-                             !string.IsNullOrEmpty(d.MaShipper))
+                             !string.IsNullOrEmpty(d.MaShipper) &&
+                             d.ThoiGianDat >= limitDate)
                 .OrderByDescending(d => d.ThoiGianDat)
                 .ToList()
                 .Where(d => !db.DanhGiaShippers.Any(dg => dg.MaDon == d.MaDon && dg.MaKH == maKH));
@@ -1352,7 +1501,7 @@ namespace ĐACN.Controllers
         }
 
 
-        public ActionResult Logout()
+        public async Task<ActionResult> Logout()
         {
             Session.Clear();
             if (Request.Cookies["TapFoodLoginIP"] != null)
@@ -1369,7 +1518,7 @@ namespace ĐACN.Controllers
         }
 
         [HttpGet]
-        public JsonResult GetOrderStatus(string maDon)
+        public async Task<JsonResult> GetOrderStatus(string maDon)
         {
             var don = db.DonHangs.FirstOrDefault(d => d.MaDon == maDon);
             if (don != null)
@@ -1377,6 +1526,85 @@ namespace ĐACN.Controllers
                 return Json(new { success = true, status = don.TrangThai }, JsonRequestBehavior.AllowGet);
             }
             return Json(new { success = false }, JsonRequestBehavior.AllowGet);
+        }
+
+        public async Task<ActionResult> VNPayReturn()
+        {
+            if (Request.QueryString.Count > 0)
+            {
+                string vnp_HashSecret = System.Configuration.ConfigurationManager.AppSettings["vnp_HashSecret"];
+                var vnpayData = Request.QueryString;
+                ĐACN.Models.VnPayLibrary vnpay = new ĐACN.Models.VnPayLibrary();
+
+                foreach (string s in vnpayData)
+                {
+                    if (!string.IsNullOrEmpty(s) && s.StartsWith("vnp_"))
+                    {
+                        vnpay.AddResponseData(s, vnpayData[s]);
+                    }
+                }
+                string vnp_ResponseCode = vnpay.GetResponseData("vnp_ResponseCode");
+                string vnp_SecureHash = Request.QueryString["vnp_SecureHash"];
+
+                bool checkSignature = vnpay.ValidateSignature(vnp_SecureHash, vnp_HashSecret);
+                if (checkSignature)
+                {
+                    if (vnp_ResponseCode == "00")
+                    {
+                        // Thanh toán thành công
+                        string maDon = vnpay.GetResponseData("vnp_TxnRef");
+                        var donHang = db.DonHangs.FirstOrDefault(d => d.MaDon == maDon);
+                        if (donHang != null)
+                        {
+                            // Kiểm tra số tiền trả về từ VNPay
+                            string amountStr = vnpay.GetResponseData("vnp_Amount");
+                            long vnpAmount = 0;
+                            long.TryParse(amountStr, out vnpAmount);
+                            long expectedAmount = (long)(donHang.TongTien ?? 0) * 100;
+
+                            if (expectedAmount > 0 && Math.Abs(vnpAmount - expectedAmount) > 1000)
+                            {
+                                TempData["Msg"] = "Số tiền thanh toán VNPay không khớp với đơn hàng!";
+                                return RedirectToAction("DonHangCuaToi");
+                            }
+
+                            if (donHang.TrangThai == "Chờ thanh toán VNPay")
+                            {
+                                donHang.TrangThai = "Chờ xác nhận";
+                                await db.SaveChangesAsync();
+
+                                try
+                                {
+                                    var context = Microsoft.AspNet.SignalR.GlobalHost.ConnectionManager.GetHubContext<ĐACN.Hubs.DeliveryHub>();
+                                    context.Clients.Group("NhaHang_" + donHang.MaNH).notifyNewOrder($"Có đơn hàng VNPay mới: {maDon}");
+                                }
+                                catch { }
+                            }
+                        }
+                        TempData["Msg"] = "Thanh toán VNPay thành công!";
+                        return RedirectToAction("TheoDoiDonHang", new { maDon = maDon });
+                    }
+                    else
+                    {
+                        // Thanh toán lỗi
+                        string maDon = vnpay.GetResponseData("vnp_TxnRef");
+                        var donHang = db.DonHangs.FirstOrDefault(d => d.MaDon == maDon);
+                        if (donHang != null && donHang.TrangThai == "Chờ thanh toán VNPay")
+                        {
+                            donHang.TrangThai = "Đã hủy";
+                            db.SaveChanges();
+                        }
+                        TempData["Msg"] = "Thanh toán VNPay thất bại hoặc bị hủy.";
+                        return RedirectToAction("DonHangCuaToi");
+                    }
+                }
+                else
+                {
+                    TempData["Msg"] = "Chữ ký VNPay không hợp lệ.";
+                    return RedirectToAction("DonHangCuaToi");
+                }
+            }
+            return RedirectToAction("TrangChu", "Home");
         }
 
     }

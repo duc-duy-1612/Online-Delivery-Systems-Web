@@ -1,102 +1,265 @@
-@{
+﻿@{
     ViewBag.Title = "Thống kê doanh thu & đơn hàng";
+    ViewBag.Active = "ThongKe";
     Layout = "~/Views/Shared/_LayoutNhaHang.cshtml";
 }
 
-<div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <select class="form-select" id="timeRangeFilter" onchange="filterThongKe()">
-                <option value="Ngày" @(ViewBag.CurrentTimeRange == "Ngày" ? "selected" : "")>Ngày</option>
-                <option value="Tháng" @(ViewBag.CurrentTimeRange == "Tháng" || string.IsNullOrEmpty(ViewBag.CurrentTimeRange as string) ? "selected" : "")>Tháng</option>
-                <option value="Quý" @(ViewBag.CurrentTimeRange == "Quý" ? "selected" : "")>Quý</option>
-            </select>
+<style>
+    /* ===== THONG KE - PREMIUM DASHBOARD ===== */
+
+    /* ===== KPI CARDS - Bento Style ===== */
+    .kpi-card {
+        border-radius: 1.25rem;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
+        border: 1px solid rgba(0,0,0,0.06) !important;
+        overflow: hidden;
+        position: relative;
+    }
+    .kpi-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 16px 40px rgba(0,0,0,0.1) !important;
+    }
+    .kpi-card::after {
+        content: '';
+        position: absolute; top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #ff5a2b, #ff9f1c);
+        opacity: 0;
+        transition: opacity 0.25s;
+    }
+    .kpi-card:hover::after { opacity: 1; }
+
+    .kpi-icon-wrap {
+        width: 56px; height: 56px;
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.4rem;
+    }
+
+    /* ===== CHART CARD ===== */
+    .card.shadow-sm {
+        border-radius: 1.25rem !important;
+        border: 1px solid rgba(0,0,0,0.06) !important;
+        overflow: hidden;
+        transition: box-shadow 0.25s ease;
+    }
+    .card.shadow-sm:hover { box-shadow: 0 12px 35px rgba(0,0,0,0.09) !important; }
+
+    /* Card header orange accent */
+    .card-header { border-bottom: 1px solid rgba(0,0,0,0.05) !important; }
+
+    /* ===== FILTER FORM ===== */
+    #filterForm {
+        border-radius: 1rem !important;
+        border: 1px solid rgba(0,0,0,0.07) !important;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.05) !important;
+    }
+    #filterForm .form-control,
+    #filterForm .form-select {
+        border-radius: 0.5rem;
+        font-size: 0.9rem;
+    }
+    #filterForm .btn-primary {
+        background: linear-gradient(135deg, #ff5a2b, #ff9f1c) !important;
+        border: none !important;
+        border-radius: 0.75rem;
+        font-weight: 700;
+        box-shadow: 0 4px 12px rgba(255,90,43,0.25);
+    }
+    #filterForm .btn-primary:hover { box-shadow: 0 8px 20px rgba(255,90,43,0.35) !important; }
+
+    /* ===== KPI DARK CARD accent ===== */
+    .kpi-card[style*="111827"] {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+        border-color: transparent !important;
+    }
+
+    /* ===== Page Title ===== */
+    h2.fw-bold { color: #1a202c !important; }
+
+    /* ===== TABLE in Top Items ===== */
+    .table { border-radius: 0.75rem; overflow: hidden; }
+    .table thead th {
+        background: #f8fafc !important;
+        color: #4a5568;
+        font-weight: 700;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 2px solid #e2e8f0 !important;
+    }
+    .table tbody tr { transition: background 0.15s; }
+    .table tbody tr:hover { background: #fffaf8 !important; }
+    .table td { border-color: #f0f2f5 !important; vertical-align: middle; }
+
+    /* ===== Animated Number Count ===== */
+    .fs-4.fw-bold { transition: all 0.4s ease; }
+</style>
+
+<div class="container-fluid py-3">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h2 class="fw-bold mb-1" style="color: #111827;">Bảng điều khiển</h2>
+            <p class="text-muted mb-0">Theo dõi hiệu suất kinh doanh của cửa hàng.</p>
         </div>
-        <div class="col-md-3">
-            <select class="form-select" id="statTypeFilter" onchange="filterThongKe()">
-                <option value="Thống kê doanh thu" @(ViewBag.CurrentStatType == "Thống kê doanh thu" || string.IsNullOrEmpty(ViewBag.CurrentStatType as string) ? "selected" : "")>Thống kê doanh thu</option>
-                <option value="Thống kê đơn hàng" @(ViewBag.CurrentStatType == "Thống kê đơn hàng" ? "selected" : "")>Thống kê đơn hàng</option>
-            </select>
-        </div>
+
+        <form method="get" class="d-flex align-items-center bg-white border rounded-3 p-2 shadow-sm gap-2 flex-wrap" id="filterForm">
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small fw-bold">Từ</span>
+                <input type="date" name="tuNgay" class="form-control form-control-sm border-0 bg-light" value="@ViewBag.TuNgay" />
+            </div>
+            <div class="d-flex align-items-center gap-2 border-start ps-2">
+                <span class="text-muted small fw-bold">Đến</span>
+                <input type="date" name="denNgay" class="form-control form-control-sm border-0 bg-light" value="@ViewBag.DenNgay" />
+            </div>
+            <div class="border-start ps-2">
+                <select name="timeRange" class="form-select form-select-sm border-0 bg-light fw-medium">
+                    <option value="Ngày" @(ViewBag.CurrentTimeRange == "Ngày" ? "selected" : "")>Theo Ngày</option>
+                    <option value="Tháng" @(ViewBag.CurrentTimeRange == "Tháng" || string.IsNullOrEmpty(ViewBag.CurrentTimeRange as string) ? "selected" : "")>Theo Tháng</option>
+                    <option value="Quý" @(ViewBag.CurrentTimeRange == "Quý" ? "selected" : "")>Theo Quý</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm ms-2 rounded-pill px-3 fw-bold shadow-sm">Lọc</button>
+        </form>
     </div>
 
-    <div class="row">
-
-        <div class="col-md-4 mb-4">
-            <div class="card shadow-sm border-0 h-100" style="border-radius: 16px; overflow: hidden;">
-                <div class="card-header bg-white border-0 pt-4 pb-0">
-                    <h6 class="fw-bold text-muted mb-0"><i class="bi bi-pie-chart-fill me-2" style="color: #f2994a;"></i> Biểu đồ doanh thu theo loại món ăn</h6>
-                </div>
-                <div class="card-body">
-                    <canvas id="chartDoanhThuTheoLoai"></canvas>
+    <!-- SUMMARY CARDS -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card kpi-card shadow-sm h-100 bg-white">
+                <div class="card-body d-flex align-items-center">
+                    <div class="kpi-icon-wrap me-3" style="background-color: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+                        <i class="bi bi-wallet2"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted fw-bold mb-1" style="font-size: 0.75rem; text-transform: uppercase;">Doanh thu hôm nay</div>
+                        <div class="fs-4 fw-bold text-dark">@(((double)(ViewBag.DoanhThuHomNay ?? 0)).ToString("N0")) đ</div>
+                        <div class="small fw-bold @(ViewBag.PhanTramTangTruong >= 0 ? "text-success" : "text-danger")">
+                            <i class="bi @(ViewBag.PhanTramTangTruong >= 0 ? "bi-arrow-up-right" : "bi-arrow-down-right")"></i> 
+                            @(ViewBag.PhanTramTangTruong)% <span class="text-muted fw-normal">so với hôm qua</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-
-
-        <div class="col-md-8 mb-4">
-            <div class="card shadow-sm border-0 h-100" style="border-radius: 16px; overflow: hidden;">
-                <div class="card-header bg-white border-0 pt-4 pb-0">
-                    <h6 class="fw-bold text-muted mb-0"><i class="bi bi-graph-up-arrow me-2" style="color: #11998e;"></i> Doanh thu theo thời gian</h6>
+        <div class="col-md-3 mb-3">
+            <div class="card kpi-card shadow-sm h-100 bg-white">
+                <div class="card-body d-flex align-items-center">
+                    <div class="kpi-icon-wrap me-3" style="background-color: rgba(16, 185, 129, 0.1); color: #10b981;">
+                        <i class="bi bi-cart-check"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted fw-bold mb-1" style="font-size: 0.75rem; text-transform: uppercase;">Đơn hàng hôm nay</div>
+                        <div class="fs-4 fw-bold text-dark">@ViewBag.DonHangHomNay <span class="fs-6 text-muted fw-normal">đơn</span></div>
+                    </div>
                 </div>
-                <div class="card-body">
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card kpi-card shadow-sm h-100 bg-white">
+                <div class="card-body d-flex align-items-center">
+                    <div class="kpi-icon-wrap me-3" style="background-color: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                        <i class="bi bi-hourglass-split"></i>
+                    </div>
+                    <div>
+                        <div class="text-muted fw-bold mb-1" style="font-size: 0.75rem; text-transform: uppercase;">Đang chờ xử lý</div>
+                        <div class="fs-4 fw-bold text-dark">@ViewBag.DonChoXuLy <span class="fs-6 text-muted fw-normal">đơn</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card kpi-card shadow-sm h-100" style="background: linear-gradient(135deg, #111827, #374151); color: white;">
+                <div class="card-body d-flex align-items-center">
+                    <div class="kpi-icon-wrap me-3" style="background-color: rgba(255, 255, 255, 0.1); color: #fff;">
+                        <i class="bi bi-bar-chart-line"></i>
+                    </div>
+                    <div>
+                        <div class="text-white-50 fw-bold mb-1" style="font-size: 0.75rem; text-transform: uppercase;">Tổng DT theo bộ lọc</div>
+                        <div class="fs-4 fw-bold text-white">@(((double)(ViewBag.TongDoanhThuLoc ?? 0)).ToString("N0")) đ</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow-sm border-0 h-100" style="border-radius: 16px; overflow: hidden;">
+                <div class="card-header bg-white border-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold mb-0" style="color: #111827;"><i class="bi bi-graph-up-arrow me-2" style="color: #3b82f6;"></i> Tăng trưởng doanh thu</h6>
+                    <span class="badge bg-light text-dark border">@ViewBag.CurrentTimeRange</span>
+                </div>
+                <div class="card-body" style="position: relative; height: 350px;">
                     <canvas id="chartDoanhThu"></canvas>
                 </div>
             </div>
         </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm border-0 h-100" style="border-radius: 16px; overflow: hidden;">
+                <div class="card-header bg-white border-0 pt-4 pb-0">
+                    <h6 class="fw-bold mb-0" style="color: #111827;"><i class="bi bi-pie-chart-fill me-2" style="color: #f59e0b;"></i> Tỉ trọng doanh mục</h6>
+                </div>
+                <div class="card-body d-flex justify-content-center align-items-center" style="position: relative; height: 350px;">
+                    <canvas id="chartDoanhThuTheoLoai"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="row">
-
-        <div class="col-md-4 mb-4">
+        <div class="col-lg-4 mb-4">
             <div class="card shadow-sm border-0 h-100" style="border-radius: 16px; overflow: hidden;">
                 <div class="card-header bg-white border-0 pt-4 pb-0">
-                    <h6 class="fw-bold text-muted mb-0"><i class="bi bi-diagram-3-fill me-2 text-warning"></i> Tỉ lệ trạng thái đơn hàng</h6>
+                    <h6 class="fw-bold mb-0" style="color: #111827;"><i class="bi bi-diagram-3-fill me-2 text-success"></i> Tỉ lệ trạng thái đơn hàng</h6>
                 </div>
-                <div class="card-body">
+                <div class="card-body d-flex justify-content-center align-items-center" style="position: relative; height: 300px;">
                     <canvas id="chartTrangThaiDonHang"></canvas>
                 </div>
             </div>
         </div>
 
-
-        <div class="col-md-8 mb-4">
+        <div class="col-lg-8 mb-4">
             <div class="card shadow-sm border-0 h-100" style="border-radius: 16px; overflow: hidden;">
                 <div class="card-header bg-white border-0 pt-4 pb-3">
-                    <h6 class="fw-bold text-muted mb-0">
+                    <h6 class="fw-bold mb-0" style="color: #111827;">
                         <i class="bi bi-star-fill text-warning me-2"></i> Món ăn bán chạy nhất
                     </h6>
                 </div>
                 <div class="card-body p-0">
-                    <table class="table table-hover text-center align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Tên món</th>
-                                <th>Giá (VNĐ)</th>
-                                <th>Tổng số lượng bán</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (ViewBag.TopSanPham != null && ((IEnumerable<dynamic>)ViewBag.TopSanPham).Any())
-                            {
-                                @* Lỗi: Bỏ ký tự '@' thừa khỏi dòng @foreach *@
-                                foreach (var item in (IEnumerable<dynamic>)ViewBag.TopSanPham)
+                    <div class="table-responsive">
+                        <table class="table table-hover text-center align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="py-3">Tên món</th>
+                                    <th class="py-3">Giá (VNĐ)</th>
+                                    <th class="py-3">Tổng số lượng bán</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (ViewBag.TopSanPham != null && ((IEnumerable<dynamic>)ViewBag.TopSanPham).Any())
+                                {
+                                    foreach (var item in (IEnumerable<dynamic>)ViewBag.TopSanPham)
+                                    {
+                                        <tr>
+                                            <td class="fw-semibold text-start ps-4">@item.TenMon</td>
+                                            <td class="text-danger fw-bold">@(((double)(item.Gia ?? 0)).ToString("N0")) đ</td>
+                                            <td><span class="badge bg-primary rounded-pill px-3">@item.SoLuongBan</span></td>
+                                        </tr>
+                                    }
+                                }
+                                else
                                 {
                                     <tr>
-                                        <td>@item.TenMon</td>
-                                        <td>@String.Format("{0:N0}", item.Gia)</td>
-                                        <td>@item.SoLuongBan</td>
+                                        <td colspan="3" class="text-muted py-4">Chưa có dữ liệu giao dịch trong khoảng thời gian này.</td>
                                     </tr>
                                 }
-                            }
-                            else
-                            {
-                                <tr>
-                                    <td colspan="3" class="text-muted">Chưa có dữ liệu</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -107,93 +270,134 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script>
-        // Đăng ký plugin hiển thị label cho tất cả các biểu đồ
         Chart.register(ChartDataLabels);
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#6b7280';
 
-        // Cấu hình chung cho data labels trên biểu đồ tròn
         const pieDatalabelsConfig = {
             formatter: (value, ctx) => {
                 if (value === 0) return '';
                 let sum = 0;
                 let dataArr = ctx.chart.data.datasets[0].data;
-                dataArr.map(data => {
-                    sum += parseFloat(data);
-                });
+                dataArr.map(data => { sum += parseFloat(data); });
                 if (sum === 0) return '';
-                let percentage = (value * 100 / sum).toFixed(1) + "%";
-                return percentage;
+                return (value * 100 / sum).toFixed(1) + "%";
             },
             color: '#fff',
-            font: {
-                weight: 'bold',
-                size: 14
-            },
+            font: { weight: 'bold', size: 12 },
             textStrokeColor: 'rgba(0,0,0,0.5)',
             textStrokeWidth: 2
         };
 
+        // Biểu đồ tỉ trọng doanh mục (Doughnut)
         new Chart(document.getElementById("chartDoanhThuTheoLoai"), {
-            type: 'pie',
+            type: 'doughnut',
             data: {
                 labels: @Html.Raw(Json.Encode(ViewBag.LabelsLoai)),
                 datasets: [{
                     data: @Html.Raw(Json.Encode(ViewBag.DataDoanhThuLoai)),
-                    backgroundColor: ['#0d6efd', '#ffc107', '#28a745', '#dc3545', '#20c997']
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
+                    borderWidth: 0,
+                    hoverOffset: 5
                 }]
             },
             options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
                 plugins: {
-                    datalabels: pieDatalabelsConfig
+                    datalabels: pieDatalabelsConfig,
+                    legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'circle' } }
                 }
             }
         });
 
+        // Biểu đồ trạng thái đơn hàng (Doughnut)
+        new Chart(document.getElementById("chartTrangThaiDonHang"), {
+            type: 'doughnut',
+            data: {
+                labels: ['Đang xử lý', 'Đã giao', 'Đã hủy'],
+                datasets: [{
+                    data: @Html.Raw(Json.Encode(ViewBag.DataTrangThaiDonHang)),
+                    backgroundColor: ['#f59e0b', '#10b981', '#ef4444'],
+                    borderWidth: 0,
+                    hoverOffset: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    datalabels: pieDatalabelsConfig,
+                    legend: { position: 'bottom', labels: { usePointStyle: true, pointStyle: 'circle' } }
+                }
+            }
+        });
 
-        new Chart(document.getElementById("chartDoanhThu"), {
-            type: 'bar',
+        // Biểu đồ Doanh thu (Line Chart with Gradient)
+        const ctxRevenue = document.getElementById('chartDoanhThu').getContext('2d');
+        let gradient = ctxRevenue.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.4)');   
+        gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+        new Chart(ctxRevenue, {
+            type: 'line',
             data: {
                 labels: @Html.Raw(Json.Encode(ViewBag.LabelsThoiGian)),
                 datasets: [{
                     label: @Html.Raw(Json.Encode(ViewBag.ChartLabel ?? "Doanh thu (VNĐ)")),
                     data: @Html.Raw(Json.Encode(ViewBag.DataDoanhThu)),
-                    backgroundColor: '#0dcaf0'
+                    backgroundColor: gradient,
+                    borderColor: '#3b82f6',
+                    borderWidth: 3,
+                    pointBackgroundColor: '#ffffff',
+                    pointBorderColor: '#3b82f6',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.4 // Spline curve
                 }]
             },
             options: {
+                responsive: true,
+                maintainAspectRatio: false,
                 plugins: {
-                    datalabels: {
-                        display: false // Không hiển thị % trên biểu đồ cột
+                    datalabels: { display: false },
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#111827',
+                        padding: 12,
+                        titleFont: { size: 13, weight: 'normal' },
+                        bodyFont: { size: 14, weight: 'bold' },
+                        callbacks: {
+                            label: function(context) {
+                                let val = context.parsed.y;
+                                if (val !== null) {
+                                    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+                                }
+                                return val;
+                            }
+                        }
                     }
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true
+                scales: { 
+                    y: { 
+                        beginAtZero: true,
+                        grid: { color: '#f3f4f6', drawBorder: false },
+                        ticks: {
+                            callback: function(value) {
+                                if (value >= 1000000) return (value / 1000000) + 'M';
+                                return value;
+                            }
+                        }
+                    },
+                    x: {
+                        grid: { display: false, drawBorder: false }
                     }
                 }
             }
         });
-
-
-        new Chart(document.getElementById("chartTrangThaiDonHang"), {
-            type: 'pie',
-            data: {
-                labels: ['Đang xử lý', 'Đã giao', 'Đã hủy'],
-                datasets: [{
-                    data: @Html.Raw(Json.Encode(ViewBag.DataTrangThaiDonHang)),
-                    backgroundColor: ['#ffc107', '#28a745', '#dc3545']
-                }]
-            },
-            options: {
-                plugins: {
-                    datalabels: pieDatalabelsConfig
-                }
-            }
-        });
-
-        function filterThongKe() {
-            var timeRange = document.getElementById("timeRangeFilter").value;
-            var statType = document.getElementById("statTypeFilter").value;
-            window.location.href = '@Url.Action("ThongKe", "NhaHang")' + '?timeRange=' + encodeURIComponent(timeRange) + '&statType=' + encodeURIComponent(statType);
-        }
     </script>
 }

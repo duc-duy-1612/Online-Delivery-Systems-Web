@@ -3,7 +3,7 @@
 
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
-    ViewBag.Title = "Danh sách Nhà hàng";
+    ViewBag.Title = "Danh Sách Nhà Hàng";
 
     // Kiểm tra session user
     var tk = Session["TaiKhoan"] as TaiKhoan;
@@ -13,13 +13,56 @@
 }
 
 <style>
-    /* --- CSS CHO FILTER BAR (Copy từ Partial) --- */
+    /* --- CSS CHO BREADCRUMB & TIÊU ĐỀ --- */
+    .breadcrumb-custom {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 0.88rem;
+        color: #a0aec0;
+        margin-bottom: 15px;
+    }
+
+    .breadcrumb-custom a {
+        color: #cbd5e0;
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+
+    .breadcrumb-custom a:hover {
+        color: var(--primary-color, #d4af37);
+    }
+
+    .breadcrumb-custom .active {
+        color: var(--primary-color, #d4af37);
+        font-weight: 600;
+    }
+
+    .page-title {
+        font-family: 'Playfair Display', serif;
+        font-size: clamp(2rem, 4vw, 2.8rem);
+        font-weight: 700;
+        color: var(--primary-color, #d4af37);
+        margin-bottom: 8px;
+        letter-spacing: -0.5px;
+    }
+
+    .page-subtitle {
+        color: #a0aec0;
+        font-size: 0.98rem;
+        max-width: 620px;
+        margin: 0 auto;
+        line-height: 1.6;
+    }
+
+    /* --- CSS CHO FILTER BAR - LUXURY DARK THEME --- */
     .filter-navbar {
         display: flex;
-        gap: 10px;
-        margin-bottom: 25px;
+        gap: 12px;
+        margin-bottom: 30px;
         overflow-x: auto;
-        padding-bottom: 5px;
+        padding-bottom: 8px;
         white-space: nowrap;
         justify-content: center;
     }
@@ -27,62 +70,63 @@
     .filter-chip {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        padding: 8px 16px;
+        gap: 7px;
+        padding: 9px 20px;
         border-radius: 50px;
-        border: 1px solid #e0e0e0;
-        background-color: #fff;
-        color: #555;
+        border: 1px solid rgba(212, 175, 55, 0.25);
+        background-color: var(--bg-card, #1C1F1E);
+        color: #cbd5e0;
         font-size: 0.9rem;
         font-weight: 600;
         text-decoration: none;
-        transition: all 0.2s ease;
+        transition: all 0.3s ease;
         cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     }
 
-        .filter-chip:hover {
-            background-color: #f5f5f5;
-            color: #333;
-            text-decoration: none;
-            border-color: #d0d0d0;
-        }
+    .filter-chip:hover {
+        background-color: rgba(212, 175, 55, 0.15);
+        color: var(--primary-color, #d4af37);
+        border-color: rgba(212, 175, 55, 0.45);
+        transform: translateY(-2px);
+        text-decoration: none;
+    }
 
-        .filter-chip.active {
-            background: linear-gradient(135deg, #ff416c, #ff4b2b);
-            color: #fff;
-            border: none;
-            box-shadow: 0 4px 15px rgba(255, 75, 43, 0.4);
-        }
+    .filter-chip.active {
+        background: linear-gradient(135deg, var(--primary-color, #d4af37), #b5952f);
+        color: #121413;
+        border-color: var(--primary-color, #d4af37);
+        box-shadow: 0 4px 18px rgba(212, 175, 55, 0.4);
+    }
 
-    /* --- CSS CARD --- */
+    /* --- CSS CARD NHÀ HÀNG - ĐỒNG BỘ TRANG CHỦ --- */
     .restaurant-card {
-        border-radius: 16px;
-        background: #fff;
-        box-shadow: 0 6px 20px rgba(0,0,0,0.06);
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        border-radius: 18px;
+        background: var(--bg-card, #1C1F1E);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35);
+        transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
         overflow: hidden;
         text-align: left;
         cursor: pointer;
         height: 100%;
-        border: 1px solid rgba(0,0,0,0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
         position: relative;
+        display: flex;
+        flex-direction: column;
     }
 
-        .restaurant-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 15px 30px rgba(255, 75, 43, 0.15);
-            border-color: rgba(255, 75, 43, 0.2);
-        }
-
-            .restaurant-card:hover .restaurant-img {
-                transform: scale(1.05);
-            }
+    .restaurant-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 16px 36px rgba(212, 175, 55, 0.18);
+        border-color: rgba(212, 175, 55, 0.4);
+    }
 
     .img-wrapper {
         position: relative;
         width: 100%;
         padding-top: 60%;
         overflow: hidden;
+        background: #242827;
     }
 
     .restaurant-img {
@@ -92,8 +136,12 @@
         width: 100%;
         height: 100%;
         object-fit: cover;
-        background-color: #f8f8f8;
-        transition: transform 0.3s ease;
+        background-color: #242827;
+        transition: transform 0.4s ease;
+    }
+
+    .restaurant-card:hover .restaurant-img {
+        transform: scale(1.06);
     }
 
     .closed-overlay {
@@ -102,57 +150,101 @@
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(255, 255, 255, 0.7);
+        background: rgba(18, 20, 19, 0.75);
         display: flex;
         align-items: center;
         justify-content: center;
         z-index: 2;
+        backdrop-filter: blur(2px);
+    }
+
+    .closed-overlay .badge {
+        background: rgba(220, 38, 38, 0.9) !important;
+        color: #fff;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);
     }
 
     .restaurant-body {
-        padding: 12px 15px;
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
     }
 
-        .restaurant-body h5 {
-            font-weight: 700;
-            margin-bottom: 4px;
-            font-size: 1.05rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-    .restaurant-address {
-        font-size: 0.85rem;
-        color: #666;
-        margin-bottom: 8px;
+    .restaurant-body h5 {
+        font-family: 'Playfair Display', serif;
+        font-weight: 700;
+        margin-bottom: 6px;
+        font-size: 1.1rem;
+        color: #f8f9fa;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        transition: color 0.2s ease;
+    }
+
+    .restaurant-card:hover .restaurant-body h5 {
+        color: var(--primary-color, #d4af37);
+    }
+
+    .restaurant-address {
+        font-size: 0.84rem;
+        color: #a0aec0;
+        margin-bottom: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .restaurant-address i {
+        color: var(--primary-color, #d4af37);
+        flex-shrink: 0;
     }
 
     .info-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        font-size: 0.9rem;
+        font-size: 0.88rem;
+        margin-top: auto;
+        padding-top: 10px;
+        border-top: 1px solid rgba(255, 255, 255, 0.07);
     }
 
     .rating {
         color: #ffc107;
         font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
     }
 
     .distance-badge {
-        color: #28a745;
+        color: #34d399;
         font-weight: 600;
-        background-color: #e8f5e9;
-        padding: 2px 8px;
-        border-radius: 10px;
-        font-size: 0.75rem;
+        background-color: rgba(52, 211, 153, 0.15);
+        border: 1px solid rgba(52, 211, 153, 0.3);
+        padding: 3px 9px;
+        border-radius: 12px;
+        font-size: 0.76rem;
         display: inline-flex;
         align-items: center;
-        gap: 3px;
+        gap: 4px;
+    }
+
+    /* --- EMPTY STATE --- */
+    .empty-state-card {
+        background: var(--bg-card, #1C1F1E);
+        border: 1px dashed rgba(212, 175, 55, 0.3);
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     }
 
     @@media (max-width: 768px) {
@@ -162,10 +254,22 @@
     }
 </style>
 
-<div class="container mt-4">
-    <h2 class="text-center mb-4 fw-bold">🏙️ Danh Sách Nhà Hàng</h2>
+<div class="container mt-4 pb-5">
+    <!-- Header & Breadcrumbs -->
+    <div class="text-center mb-4" data-aos="fade-down">
+        <div class="breadcrumb-custom">
+            <a href="@Url.Action("TrangChu", "Home")"><i class="fas fa-home me-1"></i> Trang chủ</a>
+            <span>/</span>
+            <span class="active">Nhà hàng nổi bật</span>
+        </div>
+        <h1 class="page-title">Danh Sách Nhà Hàng</h1>
+        <p class="page-subtitle">
+            Khám phá các nhà hàng đối tác nổi bật với thực đơn phong phú, chất lượng hảo hạng và giao hàng siêu tốc
+        </p>
+    </div>
 
-    <div class="filter-navbar">
+    <!-- Filter Buttons Bar -->
+    <div class="filter-navbar" data-aos="fade-up">
         <a href="@Url.Action("NhaHang", "Home", new { sort = "default" })"
            class="filter-chip @(currentSort == "default" ? "active" : "")">
             <i class="fas fa-fire"></i> Phổ biến
@@ -188,21 +292,27 @@
     </div>
 
     <div id="location-loading" class="text-center text-muted mb-3" style="display:none;">
-        <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
-        <small class="ms-2">Đang tìm vị trí của bạn...</small>
+        <div class="spinner-border spinner-border-sm text-warning" role="status"></div>
+        <small class="ms-2 text-warning">Đang tìm vị trí của bạn...</small>
     </div>
 
-    <div class="row">
+    <!-- Restaurant Cards Grid -->
+    <div class="row g-4" data-aos="fade-up">
         @if (Model == null || !Model.Any())
         {
             <div class="col-12">
-                <div class="alert alert-light text-center mt-3 border" role="alert">
-                    <div class="mb-2" style="font-size: 2rem;">🍽️</div>
-                    <p class="text-muted mb-0">Không tìm thấy nhà hàng nào phù hợp.</p>
+                <div class="empty-state-card text-center py-5">
+                    <i class="fas fa-store-slash fa-3x text-muted mb-3 opacity-50"></i>
+                    <h4 class="text-white fw-bold mb-2">Không tìm thấy nhà hàng nào phù hợp</h4>
                     @if (currentSort == "near")
                     {
-                        <small class="text-danger">Hãy đảm bảo bạn đã bật định vị trình duyệt.</small>
+                        <p class="text-warning mb-3">Hãy đảm bảo bạn đã cấp quyền định vị GPS cho trình duyệt.</p>
                     }
+                    else
+                    {
+                        <p class="text-muted mb-3">Thử chọn tiêu chí lọc khác hoặc quay lại trang chủ.</p>
+                    }
+                    <a href="@Url.Action("NhaHang", "Home")" class="btn btn-outline-warning rounded-pill px-4">Xem tất cả nhà hàng</a>
                 </div>
             </div>
         }
@@ -210,10 +320,11 @@
         {
             foreach (var nh in Model)
             {
-                <div class="col-6 col-sm-6 col-md-4 col-lg-3 mb-4">
+                <div class="col-6 col-sm-6 col-md-4 col-lg-3">
                     <div class="restaurant-card">
                         <a href="@Url.Action("XemMenu", "KhachHang", new { id = nh.MaNH })"
-                           class="text-decoration-none text-dark require-login"
+                           class="text-decoration-none require-login"
+                           style="color: var(--text-main); display: flex; flex-direction: column; height: 100%;"
                            data-id="@nh.MaNH">
 
                             <div class="img-wrapper">
@@ -233,7 +344,7 @@
                             <div class="restaurant-body">
                                 <h5 title="@nh.TenNH">@nh.TenNH</h5>
                                 <p class="restaurant-address" title="@nh.DiaChi">
-                                    <i class="fas fa-map-marker-alt text-secondary small"></i> @nh.DiaChi
+                                    <i class="fas fa-map-marker-alt small"></i> @nh.DiaChi
                                 </p>
 
                                 <div class="info-row">
@@ -258,7 +369,7 @@
     </div>
 </div>
 
-
+<script>
     // Hàm định vị GPS cho Filter Gần tôi
     function filterNearMe() {
         document.getElementById("location-loading").style.display = "block";

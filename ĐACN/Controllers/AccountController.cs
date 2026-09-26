@@ -1,16 +1,28 @@
 using ĐACN.Models;
+using ĐACN.Services;
 using System;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Mail;
+using System.Text;
 using System.Web;
 using System.Web.Mvc;
+using Newtonsoft.Json.Linq;
 
 namespace ĐACN.Controllers
 {
     public class AccountController : BaseController
     {
+        private readonly IEmailService _emailService = new EmailService();
+        private static readonly object _idGenLock = new object();
+
+        // Rate limit: lưu số lần login sai theo IP
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, (int count, DateTime firstAttempt)> _loginAttempts 
+            = new System.Collections.Concurrent.ConcurrentDictionary<string, (int count, DateTime firstAttempt)>();
+        private const int MAX_LOGIN_ATTEMPTS = 5;
+        private const int LOCKOUT_MINUTES = 15;
 
         [HttpGet]
         public ActionResult Login()
@@ -27,10 +39,27 @@ namespace ĐACN.Controllers
         [HttpPost]
         public JsonResult Login(string username, string password)
         {
+            // Rate limit check
+            string clientIP = LayDiaChiIP();
+            if (_loginAttempts.TryGetValue(clientIP, out var attempts))
+            {
+                if (attempts.count >= MAX_LOGIN_ATTEMPTS && (DateTime.Now - attempts.firstAttempt).TotalMinutes < LOCKOUT_MINUTES)
+                {
+                    int remaining = LOCKOUT_MINUTES - (int)(DateTime.Now - attempts.firstAttempt).TotalMinutes;
+                    return Json(new { success = false, message = $"Đăng nhập sai quá nhiều lần. Vui lòng thử lại sau {remaining} phút." });
+                }
+                // Reset nếu đã hết thời gian lockout
+                if ((DateTime.Now - attempts.firstAttempt).TotalMinutes >= LOCKOUT_MINUTES)
+                    _loginAttempts.TryRemove(clientIP, out _);
+            }
+
             var tk = db.TaiKhoans.FirstOrDefault(x => x.TenDangNhap == username);
 
             if (tk == null)
+            {
+                RecordFailedLogin(clientIP);
                 return Json(new { success = false, message = "Tên đăng nhập hoặc mật khẩu không đúng." });
+            }
 
             bool isPasswordValid = false;
             
@@ -49,14 +78,17 @@ namespace ĐACN.Controllers
             }
 
             if (!isPasswordValid)
+            {
+                RecordFailedLogin(clientIP);
                 return Json(new { success = false, message = "Tên đăng nhập hoặc mật khẩu không đúng." });
+            }
 
             if (tk.TrangThai == false)
                 return Json(new { success = false, message = "Tài khoản của bạn đang bị khóa." });
 
             Session["TaiKhoan"] = tk;
 
-            if (tk.VaiTro == "KhachHang")
+            if (tk.VaiTro == UserRoles.KhachHang)
             {
                 var maKH = db.KhachHangs
                              .Where(k => k.MaTK == tk.MaTK)
@@ -66,7 +98,7 @@ namespace ĐACN.Controllers
                 if (!string.IsNullOrEmpty(maKH))
                     Session["MaKH"] = maKH;
             }
-            else if (tk.VaiTro == "Shipper")
+            else if (tk.VaiTro == UserRoles.Shipper)
             {
                 var shipper = db.Shippers
                                .Where(s => s.MaTK == tk.MaTK)
@@ -79,7 +111,121 @@ namespace ĐACN.Controllers
                 }
             }
 
+            // Login thành công - xóa bộ đếm login sai
+            _loginAttempts.TryRemove(clientIP, out _);
+
             return Json(new { success = true, role = tk.VaiTro });
+        }
+
+        private void RecordFailedLogin(string ip)
+        {
+            _loginAttempts.AddOrUpdate(ip,
+                k => (1, DateTime.Now),
+                (k, existing) => (existing.count + 1, existing.firstAttempt));
+        }
+
+        [HttpPost]
+        public JsonResult GoogleLogin(string credential)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(credential))
+                    return Json(new { success = false, message = "Token không hợp lệ." });
+
+                // Xác thực an toàn với Google TokenInfo API (Kiểm tra chữ ký số, hạn dùng, audience)
+                string jsonString = "";
+                try
+                {
+                    using (var client = new WebClient { Encoding = Encoding.UTF8 })
+                    {
+                        jsonString = client.DownloadString("https://oauth2.googleapis.com/tokeninfo?id_token=" + Uri.EscapeDataString(credential));
+                    }
+                }
+                catch (Exception tokenEx)
+                {
+                    System.Diagnostics.Debug.WriteLine("Xác thực token Google thất bại: " + tokenEx.Message);
+                    return Json(new { success = false, message = "Xác thực token Google không thành công hoặc token đã hết hạn." });
+                }
+
+                var json = JObject.Parse(jsonString);
+                string email = json["email"]?.ToString();
+                string name = json["name"]?.ToString();
+                string googleId = json["sub"]?.ToString();
+                string aud = json["aud"]?.ToString();
+                string emailVerified = json["email_verified"]?.ToString();
+
+                string configuredClientId = ConfigurationManager.AppSettings["Google:ClientId"];
+                if (!string.IsNullOrEmpty(configuredClientId) && aud != configuredClientId)
+                {
+                    return Json(new { success = false, message = "Token không khớp với ứng dụng của hệ thống." });
+                }
+
+                if (string.IsNullOrEmpty(email))
+                    return Json(new { success = false, message = "Không lấy được email từ Google." });
+
+                if (emailVerified != null && emailVerified.ToLower() != "true")
+                    return Json(new { success = false, message = "Email Google chưa được xác thực." });
+
+                // Check if account already exists (by email as username)
+                var tk = db.TaiKhoans.FirstOrDefault(x => x.TenDangNhap == email);
+
+                if (tk != null)
+                {
+                    // Existing account — log them in
+                    if (tk.TrangThai == false)
+                        return Json(new { success = false, message = "Tài khoản của bạn đang bị khóa." });
+
+                    Session["TaiKhoan"] = tk;
+
+                    if (tk.VaiTro == UserRoles.KhachHang)
+                    {
+                        var maKH = db.KhachHangs
+                                     .Where(k => k.MaTK == tk.MaTK)
+                                     .Select(k => k.MaKH)
+                                     .FirstOrDefault();
+                        if (!string.IsNullOrEmpty(maKH))
+                            Session["MaKH"] = maKH;
+                    }
+
+                    return Json(new { success = true, role = tk.VaiTro });
+                }
+                else
+                {
+                    // New account — auto-create KhachHang
+                    string maTK = TaoMaTaiKhoanTuTang();
+                    var taiKhoan = new TaiKhoan
+                    {
+                        MaTK = maTK,
+                        TenDangNhap = email,
+                        MatKhau = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()), // random password
+                        VaiTro = UserRoles.KhachHang,
+                        TrangThai = true
+                    };
+                    db.TaiKhoans.Add(taiKhoan);
+
+                    string maKH = TaoMaKhachHangTuTang();
+                    var kh = new KhachHang
+                    {
+                        MaKH = maKH,
+                        TenKH = name ?? email.Split('@')[0],
+                        SDT = "",
+                        DiaChi = "",
+                        MaTK = maTK
+                    };
+                    db.KhachHangs.Add(kh);
+                    db.SaveChanges();
+
+                    Session["TaiKhoan"] = taiKhoan;
+                    Session["MaKH"] = maKH;
+
+                    return Json(new { success = true, role = UserRoles.KhachHang, isNew = true });
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Lỗi đăng nhập Google: " + ex.Message);
+                return Json(new { success = false, message = "Lỗi xử lý đăng nhập Google. Vui lòng thử lại sau." });
+            }
         }
 
         public ActionResult Logout()
@@ -88,8 +234,15 @@ namespace ĐACN.Controllers
             string vaiTro = tk?.VaiTro;
 
             Session.Clear();
+            Session.Abandon();
 
-            if (vaiTro == "KhachHang")
+            // Xóa session cookie
+            if (Response.Cookies["ASP.NET_SessionId"] != null)
+            {
+                Response.Cookies["ASP.NET_SessionId"].Expires = DateTime.Now.AddDays(-1);
+            }
+
+            if (vaiTro == UserRoles.KhachHang)
                 return RedirectToAction("TrangChu", "Home");
             else
                 return RedirectToAction("Login", "Account");
@@ -130,11 +283,11 @@ namespace ĐACN.Controllers
                     TenDangNhap = username,
                     MatKhau = BCrypt.Net.BCrypt.HashPassword(password),
                     VaiTro = role,
-                    TrangThai = role == "KhachHang" ? true : (bool?)false
+                    TrangThai = role == UserRoles.KhachHang ? true : (bool?)false
                 };
                 db.TaiKhoans.Add(taiKhoan);
 
-                if (role == "KhachHang")
+                if (role == UserRoles.KhachHang)
                 {
                     if (string.IsNullOrWhiteSpace(tenKH) || string.IsNullOrWhiteSpace(sdt) || string.IsNullOrWhiteSpace(diaChi))
                         return Json(new { success = false, message = "Vui lòng điền đầy đủ thông tin!" });
@@ -164,7 +317,7 @@ namespace ĐACN.Controllers
 
                     return Json(new { success = true, message = "Đăng ký thành công! Vui lòng đăng nhập." });
                 }
-                else if (role == "NhaHang")
+                else if (role == UserRoles.NhaHang)
                 {
                     if (string.IsNullOrWhiteSpace(tenNH) || string.IsNullOrWhiteSpace(diaChi) || string.IsNullOrWhiteSpace(sdt))
                         return Json(new { success = false, message = "Vui lòng điền đầy đủ thông tin nhà hàng!" });
@@ -203,7 +356,7 @@ namespace ĐACN.Controllers
                         DiaChi = diaChi,
                         SDT = sdt,
                         MaTK = maTK,
-                        TrangThai = "Đã đóng cửa",
+                        TrangThai = StoreStatuses.DaDongCua,
                         HinhAnh = fileName
                     };
                     db.NhaHangs.Add(nhaHang);
@@ -211,7 +364,7 @@ namespace ĐACN.Controllers
 
                     return Json(new { success = true, message = "Đăng ký thành công! Tài khoản của bạn đang chờ Admin xác nhận. Vui lòng đăng nhập sau khi được duyệt." });
                 }
-                else if (role == "Shipper")
+                else if (role == UserRoles.Shipper)
                 {
                     if (string.IsNullOrWhiteSpace(tenShipper) || string.IsNullOrWhiteSpace(sdt) || string.IsNullOrWhiteSpace(bienSoXe))
                         return Json(new { success = false, message = "Vui lòng điền đầy đủ thông tin!" });
@@ -261,153 +414,229 @@ namespace ĐACN.Controllers
                         .SelectMany(x => x.ValidationErrors)
                         .Select(x => x.ErrorMessage);
                 var fullErrorMessage = string.Join("; ", errorMessages);
-                return Json(new { success = false, message = "Lỗi validation: " + fullErrorMessage });
+                System.Diagnostics.Debug.WriteLine("Lỗi validation đăng ký: " + fullErrorMessage);
+                return Json(new { success = false, message = "Thông tin đăng ký không hợp lệ. Vui lòng kiểm tra lại." });
             }
             catch (Exception ex)
             {
-                string inner = ex.InnerException != null ? ex.InnerException.Message : "";
-                if (ex.InnerException != null && ex.InnerException.InnerException != null)
-                {
-                    inner += " | " + ex.InnerException.InnerException.Message;
-                }
-                return Json(new { success = false, message = "Có lỗi xảy ra khi đăng ký: " + ex.Message + " | Chi tiết: " + inner });
+                System.Diagnostics.Debug.WriteLine("Lỗi đăng ký: " + ex.Message);
+                return Json(new { success = false, message = "Có lỗi xảy ra khi đăng ký. Vui lòng thử lại sau." });
             }
         }
 
         private string TaoMaTaiKhoanTuTang()
         {
-            var tatCaMaTK = db.TaiKhoans
-                .Where(t => t.MaTK.StartsWith("TK") && t.MaTK.Length == 5)
-                .Select(t => t.MaTK)
-                .ToList();
-
-            if (!tatCaMaTK.Any())
+            lock (_idGenLock)
             {
-                return "TK001";
-            }
+                var topIds = db.TaiKhoans
+                    .Where(t => t.MaTK.StartsWith("TK"))
+                    .OrderByDescending(t => t.MaTK.Length)
+                    .ThenByDescending(t => t.MaTK)
+                    .Select(t => t.MaTK)
+                    .Take(20)
+                    .ToList();
 
-            var maxMa = tatCaMaTK
-                .Where(m => m.Length == 5 && m.Substring(0, 2) == "TK")
-                .Select(m =>
+                if (!topIds.Any())
                 {
-                    if (int.TryParse(m.Substring(2), out int so))
-                        return so;
-                    return 0;
-                })
-                .DefaultIfEmpty(0)
-                .Max();
+                    return "TK001";
+                }
 
-            int soMoi = maxMa + 1;
-            return "TK" + soMoi.ToString("D3");
+                var maxMa = topIds
+                    .Select(m => (m.Length > 2 && int.TryParse(m.Substring(2), out int so)) ? so : 0)
+                    .DefaultIfEmpty(0)
+                    .Max();
+
+                int soMoi = maxMa + 1;
+                return "TK" + (soMoi < 1000 ? soMoi.ToString("D3") : soMoi.ToString());
+            }
         }
 
         private string TaoMaKhachHangTuTang()
         {
-            var tatCaMaKH = db.KhachHangs
-                .Where(k => k.MaKH.StartsWith("KH") && k.MaKH.Length == 5)
-                .Select(k => k.MaKH)
-                .ToList();
-
-            if (!tatCaMaKH.Any())
+            lock (_idGenLock)
             {
-                return "KH001";
-            }
+                var topIds = db.KhachHangs
+                    .Where(k => k.MaKH.StartsWith("KH"))
+                    .OrderByDescending(k => k.MaKH.Length)
+                    .ThenByDescending(k => k.MaKH)
+                    .Select(k => k.MaKH)
+                    .Take(20)
+                    .ToList();
 
-            var maxMa = tatCaMaKH
-                .Where(m => m.Length == 5 && m.Substring(0, 2) == "KH")
-                .Select(m =>
+                if (!topIds.Any())
                 {
-                    if (int.TryParse(m.Substring(2), out int so))
-                        return so;
-                    return 0;
-                })
-                .DefaultIfEmpty(0)
-                .Max();
+                    return "KH001";
+                }
 
-            int soMoi = maxMa + 1;
-            return "KH" + soMoi.ToString("D3");
+                var maxMa = topIds
+                    .Select(m => (m.Length > 2 && int.TryParse(m.Substring(2), out int so)) ? so : 0)
+                    .DefaultIfEmpty(0)
+                    .Max();
+
+                int soMoi = maxMa + 1;
+                return "KH" + (soMoi < 1000 ? soMoi.ToString("D3") : soMoi.ToString());
+            }
         }
 
         private string TaoMaNhaHangTuTang()
         {
-            var tatCaMaNH = db.NhaHangs
-                .Where(n => n.MaNH.StartsWith("NH") && n.MaNH.Length == 5)
-                .Select(n => n.MaNH)
-                .ToList();
-
-            if (!tatCaMaNH.Any())
+            lock (_idGenLock)
             {
-                return "NH001";
-            }
+                var topIds = db.NhaHangs
+                    .Where(n => n.MaNH.StartsWith("NH"))
+                    .OrderByDescending(n => n.MaNH.Length)
+                    .ThenByDescending(n => n.MaNH)
+                    .Select(n => n.MaNH)
+                    .Take(20)
+                    .ToList();
 
-            var maxMa = tatCaMaNH
-                .Where(m => m.Length == 5 && m.Substring(0, 2) == "NH")
-                .Select(m =>
+                if (!topIds.Any())
                 {
-                    if (int.TryParse(m.Substring(2), out int so))
-                        return so;
-                    return 0;
-                })
-                .DefaultIfEmpty(0)
-                .Max();
+                    return "NH001";
+                }
 
-            int soMoi = maxMa + 1;
-            return "NH" + soMoi.ToString("D3");
+                var maxMa = topIds
+                    .Select(m => (m.Length > 2 && int.TryParse(m.Substring(2), out int so)) ? so : 0)
+                    .DefaultIfEmpty(0)
+                    .Max();
+
+                int soMoi = maxMa + 1;
+                return "NH" + (soMoi < 1000 ? soMoi.ToString("D3") : soMoi.ToString());
+            }
         }
 
         private string TaoMaShipperTuTang()
         {
-            var tatCaMaSP = db.Shippers
-                .Where(s => s.MaShipper.StartsWith("SP") && s.MaShipper.Length == 5)
-                .Select(s => s.MaShipper)
-                .ToList();
-
-            if (!tatCaMaSP.Any())
+            lock (_idGenLock)
             {
-                return "SP001";
+                var topIds = db.Shippers
+                    .Where(s => s.MaShipper.StartsWith("SP"))
+                    .OrderByDescending(s => s.MaShipper.Length)
+                    .ThenByDescending(s => s.MaShipper)
+                    .Select(s => s.MaShipper)
+                    .Take(20)
+                    .ToList();
+
+                if (!topIds.Any())
+                {
+                    return "SP001";
+                }
+
+                var maxMa = topIds
+                    .Select(m => (m.Length > 2 && int.TryParse(m.Substring(2), out int so)) ? so : 0)
+                    .DefaultIfEmpty(0)
+                    .Max();
+
+                int soMoi = maxMa + 1;
+                return "SP" + (soMoi < 1000 ? soMoi.ToString("D3") : soMoi.ToString());
+            }
+        }
+
+
+        [HttpGet]
+        public ActionResult ForgotPassword()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        public JsonResult SendOTP(string email)
+        {
+            var tk = db.TaiKhoans.FirstOrDefault(x => x.TenDangNhap == email);
+            if (tk == null)
+            {
+                return Json(new { success = false, message = "Email này chưa được đăng ký tài khoản." });
             }
 
-            var maxMa = tatCaMaSP
-                .Where(m => m.Length == 5 && m.Substring(0, 2) == "SP")
-                .Select(m =>
-                {
-                    if (int.TryParse(m.Substring(2), out int so))
-                        return so;
-                    return 0;
-                })
-                .DefaultIfEmpty(0)
-                .Max();
+            string otp = _emailService.GenerateSecureOtp(6);
+            
+            Session["OTP_" + email] = otp;
+            Session["OTP_Time_" + email] = DateTime.Now;
 
-            int soMoi = maxMa + 1;
-            return "SP" + soMoi.ToString("D3");
-        }
-
-        private void SendVerificationEmail(string toEmail, string username)
-        {
-            string from = "your_email@gmail.com";
-            string password = "your_app_password";
-            string subject = "Xác thực tài khoản TapFood Delivery";
-            string body = $"Xin chào {username},\n\nTài khoản của bạn đã được tạo thành công!";
-
-            var smtp = new SmtpClient("smtp.gmail.com")
+            if (_emailService.SendOtpEmail(email, otp, out string errorMessage))
             {
-                Port = 587,
-                Credentials = new NetworkCredential(from, password),
-                EnableSsl = true
-            };
-            smtp.Send(from, toEmail, subject, body);
+                return Json(new { success = true, message = "Đã gửi mã OTP đến email của bạn." });
+            }
+
+            return Json(new { success = false, message = errorMessage });
         }
 
+        [HttpPost]
+        public JsonResult VerifyOTP(string email, string otp)
+        {
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(otp))
+            {
+                return Json(new { success = false, message = "Thông tin xác thực không hợp lệ." });
+            }
+
+            if (Session["OTP_" + email] == null || Session["OTP_Time_" + email] == null)
+            {
+                return Json(new { success = false, message = "Mã OTP đã hết hạn hoặc không tồn tại." });
+            }
+
+            string savedOtp = Session["OTP_" + email].ToString();
+            DateTime timeSaved = (DateTime)Session["OTP_Time_" + email];
+
+            if ((DateTime.Now - timeSaved).TotalMinutes > 5)
+            {
+                Session.Remove("OTP_" + email);
+                Session.Remove("OTP_Time_" + email);
+                Session.Remove("OTP_Verified_" + email);
+                return Json(new { success = false, message = "Mã OTP đã hết hạn (quá 5 phút)." });
+            }
+
+            if (savedOtp == otp)
+            {
+                Session["OTP_Verified_" + email] = true;
+                return Json(new { success = true });
+            }
+
+            return Json(new { success = false, message = "Mã OTP không chính xác." });
+        }
+
+        [HttpPost]
+        public JsonResult ResetPassword(string email, string newPassword)
+        {
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(newPassword))
+            {
+                return Json(new { success = false, message = "Thông tin không hợp lệ." });
+            }
+
+            if (newPassword.Length < 6)
+            {
+                return Json(new { success = false, message = "Mật khẩu mới phải từ 6 ký tự trở lên." });
+            }
+
+            if (Session["OTP_" + email] == null || Session["OTP_Verified_" + email] == null || (bool)Session["OTP_Verified_" + email] != true)
+            {
+                return Json(new { success = false, message = "Phiên giao dịch không hợp lệ hoặc mã OTP chưa được xác thực." });
+            }
+
+            var tk = db.TaiKhoans.FirstOrDefault(x => x.TenDangNhap == email);
+            if (tk == null)
+            {
+                return Json(new { success = false, message = "Không tìm thấy tài khoản." });
+            }
+
+            tk.MatKhau = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            db.SaveChanges();
+
+            Session.Remove("OTP_" + email);
+            Session.Remove("OTP_Time_" + email);
+            Session.Remove("OTP_Verified_" + email);
+
+            return Json(new { success = true });
+        }
 
         private ActionResult RedirectTheoVaiTro(string vaiTro)
         {
             switch (vaiTro)
             {
-                case "Shipper":
+                case UserRoles.Shipper:
                     return RedirectToAction("Index", "Shipper");
-                case "Admin":
+                case UserRoles.Admin:
                     return RedirectToAction("DanhSachCuaHang", "Admin");
-                case "NhaHang":
+                case UserRoles.NhaHang:
                     return RedirectToAction("ThongKe", "NhaHang");
                 default:
                     return RedirectToAction("TrangChu", "Home");
